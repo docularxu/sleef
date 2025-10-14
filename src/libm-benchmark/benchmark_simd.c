@@ -323,7 +323,7 @@ static float rand_float(float min, float max) {
     #define VSE_F(p, v, vl) __riscv_vse32_v_f32m2(p, v, vl)
   #endif
   
-  #define BENCHMARK_SIMD_1ARG_D(func, min_val, max_val, iterations, vector_size) do { \
+  #define BENCHMARK_SIMD_1ARG_D(func, func_str, min_val, max_val, iterations, vector_size) do { \
     double *input = (double *)aligned_alloc(64, vector_size * sizeof(double)); \
     double *output = (double *)aligned_alloc(64, vector_size * sizeof(double)); \
     for (size_t i = 0; i < vector_size; i++) { \
@@ -343,13 +343,13 @@ static float rand_float(float min, float max) {
     double elapsed = get_time_sec() - start; \
     double sum = 0; \
     for (size_t i = 0; i < vector_size; i++) sum += output[i]; \
-    printf("%-35s: %10.3f ns/element  (sum=%g)\n", #func, \
+    printf("%-35s: %10.3f ns/element  (sum=%g)\n", func_str, \
            elapsed * 1e9 / (iterations * vector_size), sum); \
     free(input); \
     free(output); \
   } while(0)
 
-  #define BENCHMARK_SIMD_1ARG_F(func, min_val, max_val, iterations, vector_size) do { \
+  #define BENCHMARK_SIMD_1ARG_F(func, func_str, min_val, max_val, iterations, vector_size) do { \
     float *input = (float *)aligned_alloc(64, vector_size * sizeof(float)); \
     float *output = (float *)aligned_alloc(64, vector_size * sizeof(float)); \
     for (size_t i = 0; i < vector_size; i++) { \
@@ -369,7 +369,7 @@ static float rand_float(float min, float max) {
     double elapsed = get_time_sec() - start; \
     float sum = 0; \
     for (size_t i = 0; i < vector_size; i++) sum += output[i]; \
-    printf("%-35s: %10.3f ns/element  (sum=%g)\n", #func, \
+    printf("%-35s: %10.3f ns/element  (sum=%g)\n", func_str, \
            elapsed * 1e9 / (iterations * vector_size), sum); \
     free(input); \
     free(output); \
