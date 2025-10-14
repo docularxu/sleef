@@ -157,6 +157,28 @@ typedef struct {
   printf("\n"); \
 } while(0)
 
+#define RUN_SCALAR_2ARG_F(func, libm_func, poolx, pooly, pooln, iterations) do {
+  float sum = 0;
+  double start = get_time_sec();
+  for (uint64_t i = 0; i < (iterations); i++) {
+    float x = (poolx)[i % (pooln)];
+    float y = (pooly)[i % (pooln)];
+    sum += func(x, y);
+  }
+  double elapsed = get_time_sec() - start;
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, elapsed * 1e9 / (iterations), sum);
+  sum = 0;
+  start = get_time_sec();
+  for (uint64_t i = 0; i < (iterations); i++) {
+    float x = (poolx)[i % (pooln)];
+    float y = (pooly)[i % (pooln)];
+    sum += libm_func(x, y);
+  }
+  elapsed = get_time_sec() - start;
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", elapsed * 1e9 / (iterations), sum);
+  printf("\n");
+} while(0)
+
 void benchmark_trig_functions(uint64_t iterations) {
   printf("=================================================================\n");
   printf("Trigonometric Functions (Double Precision)\n");
@@ -249,6 +271,28 @@ void benchmark_power_functions(uint64_t iterations) {
   RUN_SCALAR_1ARG_D(Sleef_cbrt_u10, cbrt, pd_cbrt, g_pool_size, iterations);
   if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_cbrt_u35, cbrt, pd_cbrt, g_pool_size, iterations);
   free(pd_cbrt); free(pd_sqrt); free(pd_powy); free(pd_powx);
+}
+
+void benchmark_power_functions_f(uint64_t iterations) {
+  printf("=================================================================\n");
+  printf("Power Functions (Single Precision)\n");
+  printf("=================================================================\n\n");
+
+  float *pf_powx = alloc_fill_float(g_pool_size, -30.0f, 30.0f);
+  float *pf_powy = alloc_fill_float(g_pool_size, -30.0f, 30.0f);
+  float *pf_sqrt = alloc_fill_float(g_pool_size, 0.0f, 1e38f);
+  float *pf_cbrt = alloc_fill_float(g_pool_size, -1e15f, 1e15f);
+  if (!pf_powx || !pf_powy || !pf_sqrt || !pf_cbrt) {
+    fprintf(stderr, "alloc failed\n");
+    free(pf_powx); free(pf_powy); free(pf_sqrt); free(pf_cbrt);
+    return;
+  }
+  RUN_SCALAR_2ARG_F(Sleef_powf_u10, powf, pf_powx, pf_powy, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_sqrtf_u05, sqrtf, pf_sqrt, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_sqrtf_u35, sqrtf, pf_sqrt, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_cbrtf_u10, cbrtf, pf_cbrt, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_cbrtf_u35, cbrtf, pf_cbrt, g_pool_size, iterations);
+  free(pf_cbrt); free(pf_sqrt); free(pf_powy); free(pf_powx);
 }
 
 void benchmark_inverse_trig_functions(uint64_t iterations) {
@@ -411,6 +455,7 @@ int main(int argc, char **argv) {
   
   if (run_all || run_pow) {
     benchmark_power_functions(iterations);
+    benchmark_power_functions_f(iterations);
   }
   
   if (run_all || run_invtrig) {
