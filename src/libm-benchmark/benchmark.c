@@ -278,17 +278,22 @@ void benchmark_hyperbolic_functions(uint64_t iterations) {
   double *pd_huge = alloc_fill_double(g_pool_size, -700.0, 700.0);
   double *pd_unit = alloc_fill_double(g_pool_size, -1.0, 1.0);
   double *pd_pos  = alloc_fill_double(g_pool_size, 1.0, 1e300);
-  if (!pd_huge || !pd_unit || !pd_pos) { fprintf(stderr, "alloc failed\n"); free(pd_huge); free(pd_unit); free(pd_pos); return; }
+  double *pd_tanh = alloc_fill_double(g_pool_size, -10.0, 10.0);
+  if (!pd_huge || !pd_unit || !pd_pos || !pd_tanh) {
+    fprintf(stderr, "alloc failed\n");
+    free(pd_huge); free(pd_unit); free(pd_pos); free(pd_tanh);
+    return;
+  }
   RUN_SCALAR_1ARG_D(Sleef_sinh_u10, sinh, pd_huge, g_pool_size, iterations);
   if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_sinh_u35, sinh, pd_huge, g_pool_size, iterations);
   RUN_SCALAR_1ARG_D(Sleef_cosh_u10, cosh, pd_huge, g_pool_size, iterations);
   if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_cosh_u35, cosh, pd_huge, g_pool_size, iterations);
-  RUN_SCALAR_1ARG_D(Sleef_tanh_u10, tanh, pd_unit, g_pool_size, iterations);
-  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_tanh_u35, tanh, pd_unit, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_tanh_u10, tanh, pd_tanh, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_tanh_u35, tanh, pd_tanh, g_pool_size, iterations);
   RUN_SCALAR_1ARG_D(Sleef_asinh_u10, asinh, pd_pos, g_pool_size, iterations);
   RUN_SCALAR_1ARG_D(Sleef_acosh_u10, acosh, pd_pos, g_pool_size, iterations);
   RUN_SCALAR_1ARG_D(Sleef_atanh_u10, atanh, pd_unit, g_pool_size, iterations);
-  free(pd_pos); free(pd_unit); free(pd_huge);
+  free(pd_tanh); free(pd_pos); free(pd_unit); free(pd_huge);
 }
 
 // ============================================================================
