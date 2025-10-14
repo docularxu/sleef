@@ -124,6 +124,19 @@
   #define SLEEF_EXPF Sleef_expf16_u10avx512f
   #define SLEEF_LOGF Sleef_logf16_u10avx512f
   #define SLEEF_TANHF Sleef_tanhf16_u10avx512f
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sind8_u10avx512f)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosd8_u10avx512f)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tand8_u10avx512f)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expd8_u10avx512f)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logd8_u10avx512f)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtd8_u05avx512f)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhd8_u10avx512f)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinf16_u10avx512f)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosf16_u10avx512f)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanf16_u10avx512f)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf16_u10avx512f)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf16_u10avx512f)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf16_u10avx512f)
 
 #elif defined(ENABLE_ADVSIMD)
   #define SIMD_NAME "ADVSIMD"
@@ -151,6 +164,19 @@
   #define SLEEF_EXPF Sleef_expf4_u10advsimd
   #define SLEEF_LOGF Sleef_logf4_u10advsimd
   #define SLEEF_TANHF Sleef_tanhf4_u10advsimd
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sind2_u10advsimd)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosd2_u10advsimd)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tand2_u10advsimd)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expd2_u10advsimd)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logd2_u10advsimd)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtd2_u05advsimd)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhd2_u10advsimd)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinf4_u10advsimd)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosf4_u10advsimd)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanf4_u10advsimd)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10advsimd)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10advsimd)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10advsimd)
 
 #elif defined(ENABLE_SVE)
   #define SIMD_NAME "SVE"
@@ -173,6 +199,19 @@
   #define SLEEF_TANH Sleef_tanhdx_u10sve
   #define SLEEF_TANHF Sleef_tanhfx_u10sve
   #define USE_SVE 1
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sindx_u10sve)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosdx_u10sve)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tandx_u10sve)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expdx_u10sve)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logdx_u10sve)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtdx_u05sve)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhdx_u10sve)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinfx_u10sve)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosfx_u10sve)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanfx_u10sve)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expfx_u10sve)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logfx_u10sve)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhfx_u10sve)
 
 #elif defined(ENABLE_RVVM1)
   #define SIMD_NAME "RVV (LMUL=1)"
@@ -194,6 +233,19 @@
   #define SLEEF_LOGF Sleef_logfx_u10rvvm1
   #define SLEEF_TANH Sleef_tanhdx_u10rvvm1
   #define SLEEF_TANHF Sleef_tanhfx_u10rvvm1
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sindx_u10rvvm1)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosdx_u10rvvm1)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tandx_u10rvvm1)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expdx_u10rvvm1)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logdx_u10rvvm1)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtdx_u05rvvm1)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhdx_u10rvvm1)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinfx_u10rvvm1)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosfx_u10rvvm1)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanfx_u10rvvm1)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expfx_u10rvvm1)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logfx_u10rvvm1)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhfx_u10rvvm1)
 
 #elif defined(ENABLE_RVVM2)
   #define SIMD_NAME "RVV (LMUL=2)"
@@ -215,6 +267,19 @@
   #define SLEEF_LOGF Sleef_logfx_u10rvvm2
   #define SLEEF_TANH Sleef_tanhdx_u10rvvm2
   #define SLEEF_TANHF Sleef_tanhfx_u10rvvm2
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sindx_u10rvvm2)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosdx_u10rvvm2)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tandx_u10rvvm2)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expdx_u10rvvm2)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logdx_u10rvvm2)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtdx_u05rvvm2)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhdx_u10rvvm2)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinfx_u10rvvm2)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosfx_u10rvvm2)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanfx_u10rvvm2)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expfx_u10rvvm2)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logfx_u10rvvm2)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhfx_u10rvvm2)
 
 #elif defined(ENABLE_VSX)
   #define SIMD_NAME "VSX"
@@ -236,6 +301,19 @@
   #define SLEEF_LOGF Sleef_logf4_u10vsx
   #define SLEEF_TANH Sleef_tanhd2_u10vsx
   #define SLEEF_TANHF Sleef_tanhf4_u10vsx
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sind2_u10vsx)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosd2_u10vsx)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tand2_u10vsx)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expd2_u10vsx)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logd2_u10vsx)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtd2_u05vsx)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhd2_u10vsx)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinf4_u10vsx)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosf4_u10vsx)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanf4_u10vsx)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10vsx)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10vsx)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10vsx)
 
 #elif defined(ENABLE_VXE)
   #define SIMD_NAME "VXE"
@@ -257,6 +335,19 @@
   #define SLEEF_LOGF Sleef_logf4_u10vxe
   #define SLEEF_TANH Sleef_tanhd2_u10vxe
   #define SLEEF_TANHF Sleef_tanhf4_u10vxe
+  #define SLEEF_SIN_STR  STRINGIFY(Sleef_sind2_u10vxe)
+  #define SLEEF_COS_STR  STRINGIFY(Sleef_cosd2_u10vxe)
+  #define SLEEF_TAN_STR  STRINGIFY(Sleef_tand2_u10vxe)
+  #define SLEEF_EXP_STR  STRINGIFY(Sleef_expd2_u10vxe)
+  #define SLEEF_LOG_STR  STRINGIFY(Sleef_logd2_u10vxe)
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtd2_u05vxe)
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhd2_u10vxe)
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinf4_u10vxe)
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosf4_u10vxe)
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanf4_u10vxe)
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10vxe)
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10vxe)
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10vxe)
 
 #else
   #error "No SIMD extension defined"
