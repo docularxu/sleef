@@ -299,7 +299,7 @@ void print_usage(const char *prog) {
   printf("Usage: %s [options]\n", prog);
   printf("Options:\n");
   printf("  -i <iterations>  Number of iterations (default: %d)\n", BENCHMARK_ITERATIONS);
-  printf("  -s <pool_size>   Input pool size for scalar (default: %zu)\n", (size_t)1000000);
+  printf("  -psz <pool_size> Input pool size for scalar (default: %zu)\n", (size_t)1000000);
   printf("  --seed <value>   RNG seed for reproducible pools\n");
   printf("  -h               Show this help message\n");
   printf("  --no-u35         Disable u35 variant benchmarks (match SIMD variants)\n");
@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-i") == 0 && i + 1 < argc) {
       iterations = strtoull(argv[++i], NULL, 10);
-    } else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
+    } else if (strcmp(argv[i], "-psz") == 0 && i + 1 < argc) {
       g_pool_size = strtoull(argv[++i], NULL, 10);
       if (g_pool_size == 0) g_pool_size = 1;
     } else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {

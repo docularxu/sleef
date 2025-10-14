@@ -47,7 +47,7 @@ cmake -DSLEEF_BUILD_BENCH=ON ..
 make -j$(nproc)
 
 # Run benchmarks
-./bin/benchmark                # Scalar
+./bin/benchmark --match-simd -psz 1000000  # Scalar (pool size 1M)
 ./bin/benchmark_rvvm1          # RISC-V RVV (LMUL=1)
 ./bin/benchmark_avx2           # x86 AVX2
 # ... etc for your platform
