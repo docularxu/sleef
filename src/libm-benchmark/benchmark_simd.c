@@ -1,3 +1,5 @@
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x) STRINGIFY_(x)
 //   Copyright Naoki Shibata and contributors 2010 - 2025.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE.txt or copy at
@@ -29,19 +31,32 @@
   #define VSTORE_DOUBLE(p, v) _mm_storeu_pd(p, v)
   #define VSTORE_FLOAT(p, v) _mm_storeu_ps(p, v)
   #define SLEEF_SIN Sleef_sind2_u10sse2
+  #define SLEEF_SIN_STR STRINGIFY(Sleef_sind2_u10sse2)
   #define SLEEF_COS Sleef_cosd2_u10sse2
+  #define SLEEF_COS_STR STRINGIFY(Sleef_cosd2_u10sse2)
   #define SLEEF_TAN Sleef_tand2_u10sse2
+  #define SLEEF_TAN_STR STRINGIFY(Sleef_tand2_u10sse2)
   #define SLEEF_EXP Sleef_expd2_u10sse2
+  #define SLEEF_EXP_STR STRINGIFY(Sleef_expd2_u10sse2)
   #define SLEEF_LOG Sleef_logd2_u10sse2
+  #define SLEEF_LOG_STR STRINGIFY(Sleef_logd2_u10sse2)
   #define SLEEF_POW Sleef_powd2_u10sse2
   #define SLEEF_SQRT Sleef_sqrtd2_u05sse2
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtd2_u05sse2)
   #define SLEEF_TANH Sleef_tanhd2_u10sse2
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhd2_u10sse2)
   #define SLEEF_SINF Sleef_sinf4_u10sse2
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinf4_u10sse2)
   #define SLEEF_COSF Sleef_cosf4_u10sse2
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosf4_u10sse2)
   #define SLEEF_TANF Sleef_tanf4_u10sse2
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanf4_u10sse2)
   #define SLEEF_EXPF Sleef_expf4_u10sse2
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10sse2)
   #define SLEEF_LOGF Sleef_logf4_u10sse2
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10sse2)
   #define SLEEF_TANHF Sleef_tanhf4_u10sse2
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10sse2)
 
 #elif defined(ENABLE_AVX2)
   #define SIMD_NAME "AVX2"
@@ -56,19 +71,32 @@
   #define VSTORE_DOUBLE(p, v) _mm256_storeu_pd(p, v)
   #define VSTORE_FLOAT(p, v) _mm256_storeu_ps(p, v)
   #define SLEEF_SIN Sleef_sind4_u10avx2
+  #define SLEEF_SIN_STR STRINGIFY(Sleef_sind4_u10avx2)
   #define SLEEF_COS Sleef_cosd4_u10avx2
+  #define SLEEF_COS_STR STRINGIFY(Sleef_cosd4_u10avx2)
   #define SLEEF_TAN Sleef_tand4_u10avx2
+  #define SLEEF_TAN_STR STRINGIFY(Sleef_tand4_u10avx2)
   #define SLEEF_EXP Sleef_expd4_u10avx2
+  #define SLEEF_EXP_STR STRINGIFY(Sleef_expd4_u10avx2)
   #define SLEEF_LOG Sleef_logd4_u10avx2
+  #define SLEEF_LOG_STR STRINGIFY(Sleef_logd4_u10avx2)
   #define SLEEF_POW Sleef_powd4_u10avx2
   #define SLEEF_SQRT Sleef_sqrtd4_u05avx2
+  #define SLEEF_SQRT_STR STRINGIFY(Sleef_sqrtd4_u05avx2)
   #define SLEEF_TANH Sleef_tanhd4_u10avx2
+  #define SLEEF_TANH_STR STRINGIFY(Sleef_tanhd4_u10avx2)
   #define SLEEF_SINF Sleef_sinf8_u10avx2
+  #define SLEEF_SINF_STR STRINGIFY(Sleef_sinf8_u10avx2)
   #define SLEEF_COSF Sleef_cosf8_u10avx2
+  #define SLEEF_COSF_STR STRINGIFY(Sleef_cosf8_u10avx2)
   #define SLEEF_TANF Sleef_tanf8_u10avx2
+  #define SLEEF_TANF_STR STRINGIFY(Sleef_tanf8_u10avx2)
   #define SLEEF_EXPF Sleef_expf8_u10avx2
+  #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf8_u10avx2)
   #define SLEEF_LOGF Sleef_logf8_u10avx2
+  #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf8_u10avx2)
   #define SLEEF_TANHF Sleef_tanhf8_u10avx2
+  #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf8_u10avx2)
 
 #elif defined(ENABLE_AVX512F)
   #define SIMD_NAME "AVX512F"
