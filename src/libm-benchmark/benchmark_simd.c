@@ -57,6 +57,7 @@
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10sse2)
   #define SLEEF_TANHF Sleef_tanhf4_u10sse2
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10sse2)
+  #define SLEEF_SQRTF Sleef_sqrtf4_u05sse2
 
 #elif defined(ENABLE_AVX2)
   #define SIMD_NAME "AVX2"
@@ -97,6 +98,7 @@
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf8_u10avx2)
   #define SLEEF_TANHF Sleef_tanhf8_u10avx2
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf8_u10avx2)
+  #define SLEEF_SQRTF Sleef_sqrtf8_u05avx2
 
 #elif defined(ENABLE_AVX512F)
   #define SIMD_NAME "AVX512F"
@@ -137,6 +139,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf16_u10avx512f)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf16_u10avx512f)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf16_u10avx512f)
+  #define SLEEF_SQRTF Sleef_sqrtf16_u05avx512f
 
 #elif defined(ENABLE_ADVSIMD)
   #define SIMD_NAME "ADVSIMD"
@@ -164,6 +167,7 @@
   #define SLEEF_EXPF Sleef_expf4_u10advsimd
   #define SLEEF_LOGF Sleef_logf4_u10advsimd
   #define SLEEF_TANHF Sleef_tanhf4_u10advsimd
+  #define SLEEF_SQRTF Sleef_sqrtf4_u05advsimd
   #define SLEEF_SIN_STR  STRINGIFY(Sleef_sind2_u10advsimd)
   #define SLEEF_COS_STR  STRINGIFY(Sleef_cosd2_u10advsimd)
   #define SLEEF_TAN_STR  STRINGIFY(Sleef_tand2_u10advsimd)
@@ -177,6 +181,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10advsimd)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10advsimd)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10advsimd)
+  #define SLEEF_SQRTF_STR STRINGIFY(Sleef_sqrtf4_u05advsimd)
 
 #elif defined(ENABLE_SVE)
   #define SIMD_NAME "SVE"
@@ -212,6 +217,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expfx_u10sve)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logfx_u10sve)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhfx_u10sve)
+  #define SLEEF_SQRTF Sleef_sqrtfx_u05sve
 
 #elif defined(ENABLE_RVVM1)
   #define SIMD_NAME "RVV (LMUL=1)"
@@ -246,6 +252,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expfx_u10rvvm1)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logfx_u10rvvm1)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhfx_u10rvvm1)
+  #define SLEEF_SQRTF Sleef_sqrtfx_u05rvvm1
 
 #elif defined(ENABLE_RVVM2)
   #define SIMD_NAME "RVV (LMUL=2)"
@@ -280,6 +287,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expfx_u10rvvm2)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logfx_u10rvvm2)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhfx_u10rvvm2)
+  #define SLEEF_SQRTF Sleef_sqrtfx_u05rvvm2
 
 #elif defined(ENABLE_VSX)
   #define SIMD_NAME "VSX"
@@ -314,6 +322,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10vsx)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10vsx)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10vsx)
+  #define SLEEF_SQRTF Sleef_sqrtf4_u05vsx
 
 #elif defined(ENABLE_VXE)
   #define SIMD_NAME "VXE"
@@ -348,6 +357,7 @@
   #define SLEEF_EXPF_STR STRINGIFY(Sleef_expf4_u10vxe)
   #define SLEEF_LOGF_STR STRINGIFY(Sleef_logf4_u10vxe)
   #define SLEEF_TANHF_STR STRINGIFY(Sleef_tanhf4_u10vxe)
+  #define SLEEF_SQRTF Sleef_sqrtf4_u05vxe
 
 #else
   #error "No SIMD extension defined"
@@ -606,6 +616,7 @@ void benchmark_simd_functions(uint64_t iterations, size_t vector_size) {
   BENCHMARK_SIMD_1ARG_F(SLEEF_TANF, SLEEF_TANF_STR, 0.0f, 6.28f, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_F(SLEEF_EXPF, SLEEF_EXPF_STR, -100.0f, 100.0f, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_F(SLEEF_LOGF, SLEEF_LOGF_STR, 1.0f, 1e38f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_SQRTF, SLEEF_SQRTF_STR, 0.0f, 1e38f, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_F(SLEEF_TANHF, SLEEF_TANHF_STR, -10.0f, 10.0f, iterations, vector_size);
 }
 
