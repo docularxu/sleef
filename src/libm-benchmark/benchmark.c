@@ -15,6 +15,10 @@
 
 #include "sleef.h"
 
+// Global toggle to control inclusion of u35 variants at runtime.
+// Default: include u35. Can be disabled via --no-u35 / --match-simd.
+static int g_include_u35 = 1;
+
 // Number of iterations for each benchmark
 #ifndef BENCHMARK_ITERATIONS
 #define BENCHMARK_ITERATIONS 100000000
@@ -144,11 +148,11 @@ void benchmark_trig_functions(uint64_t iterations) {
   printf("=================================================================\n\n");
   
   BENCHMARK_SCALAR_1ARG(Sleef_sin_u10, sin, 0.0, 6.28, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_sin_u35, sin, 0.0, 6.28, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_sin_u35, sin, 0.0, 6.28, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_cos_u10, cos, 0.0, 6.28, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_cos_u35, cos, 0.0, 6.28, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_cos_u35, cos, 0.0, 6.28, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_tan_u10, tan, 0.0, 6.28, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_tan_u35, tan, 0.0, 6.28, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_tan_u35, tan, 0.0, 6.28, iterations);
 }
 
 void benchmark_trig_functions_f(uint64_t iterations) {
@@ -157,11 +161,11 @@ void benchmark_trig_functions_f(uint64_t iterations) {
   printf("=================================================================\n\n");
   
   BENCHMARK_SCALAR_1ARG_F(Sleef_sinf_u10, sinf, 0.0f, 6.28f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_sinf_u35, sinf, 0.0f, 6.28f, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_sinf_u35, sinf, 0.0f, 6.28f, iterations);
   BENCHMARK_SCALAR_1ARG_F(Sleef_cosf_u10, cosf, 0.0f, 6.28f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_cosf_u35, cosf, 0.0f, 6.28f, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_cosf_u35, cosf, 0.0f, 6.28f, iterations);
   BENCHMARK_SCALAR_1ARG_F(Sleef_tanf_u10, tanf, 0.0f, 6.28f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_tanf_u35, tanf, 0.0f, 6.28f, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_tanf_u35, tanf, 0.0f, 6.28f, iterations);
 }
 
 void benchmark_exp_log_functions(uint64_t iterations) {
@@ -171,7 +175,7 @@ void benchmark_exp_log_functions(uint64_t iterations) {
   
   BENCHMARK_SCALAR_1ARG(Sleef_exp_u10, exp, -700.0, 700.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_log_u10, log, 1.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_log_u35, log, 1.0, 1e300, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_log_u35, log, 1.0, 1e300, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_log10_u10, log10, 1.0, 1e300, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_log2_u10, log2, 1.0, 1e300, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_exp2_u10, exp2, -1000.0, 1000.0, iterations);
@@ -185,7 +189,7 @@ void benchmark_exp_log_functions_f(uint64_t iterations) {
   
   BENCHMARK_SCALAR_1ARG_F(Sleef_expf_u10, expf, -100.0f, 100.0f, iterations);
   BENCHMARK_SCALAR_1ARG_F(Sleef_logf_u10, logf, 1.0f, 1e38f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_logf_u35, logf, 1.0f, 1e38f, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_logf_u35, logf, 1.0f, 1e38f, iterations);
   BENCHMARK_SCALAR_1ARG_F(Sleef_log10f_u10, log10f, 1.0f, 1e38f, iterations);
   BENCHMARK_SCALAR_1ARG_F(Sleef_log2f_u10, log2f, 1.0f, 1e38f, iterations);
   BENCHMARK_SCALAR_1ARG_F(Sleef_exp2f_u10, exp2f, -100.0f, 100.0f, iterations);
@@ -199,9 +203,9 @@ void benchmark_power_functions(uint64_t iterations) {
   
   BENCHMARK_SCALAR_2ARG(Sleef_pow_u10, pow, -30.0, 30.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_sqrt_u05, sqrt, 0.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_sqrt_u35, sqrt, 0.0, 1e300, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_sqrt_u35, sqrt, 0.0, 1e300, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_cbrt_u10, cbrt, -1e100, 1e100, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_cbrt_u35, cbrt, -1e100, 1e100, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_cbrt_u35, cbrt, -1e100, 1e100, iterations);
 }
 
 void benchmark_inverse_trig_functions(uint64_t iterations) {
@@ -210,13 +214,13 @@ void benchmark_inverse_trig_functions(uint64_t iterations) {
   printf("=================================================================\n\n");
   
   BENCHMARK_SCALAR_1ARG(Sleef_asin_u10, asin, -1.0, 1.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_asin_u35, asin, -1.0, 1.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_asin_u35, asin, -1.0, 1.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_acos_u10, acos, -1.0, 1.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_acos_u35, acos, -1.0, 1.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_acos_u35, acos, -1.0, 1.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_atan_u10, atan, -10.0, 10.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_atan_u35, atan, -10.0, 10.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_atan_u35, atan, -10.0, 10.0, iterations);
   BENCHMARK_SCALAR_2ARG(Sleef_atan2_u10, atan2, -10.0, 10.0, iterations);
-  BENCHMARK_SCALAR_2ARG(Sleef_atan2_u35, atan2, -10.0, 10.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_2ARG(Sleef_atan2_u35, atan2, -10.0, 10.0, iterations);
 }
 
 void benchmark_hyperbolic_functions(uint64_t iterations) {
@@ -225,11 +229,11 @@ void benchmark_hyperbolic_functions(uint64_t iterations) {
   printf("=================================================================\n\n");
   
   BENCHMARK_SCALAR_1ARG(Sleef_sinh_u10, sinh, -700.0, 700.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_sinh_u35, sinh, -700.0, 700.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_sinh_u35, sinh, -700.0, 700.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_cosh_u10, cosh, -700.0, 700.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_cosh_u35, cosh, -700.0, 700.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_cosh_u35, cosh, -700.0, 700.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_tanh_u10, tanh, -10.0, 10.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_tanh_u35, tanh, -10.0, 10.0, iterations);
+  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_tanh_u35, tanh, -10.0, 10.0, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_asinh_u10, asinh, -1e300, 1e300, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_acosh_u10, acosh, 1.0, 1e300, iterations);
   BENCHMARK_SCALAR_1ARG(Sleef_atanh_u10, atanh, -1.0, 1.0, iterations);
@@ -244,6 +248,8 @@ void print_usage(const char *prog) {
   printf("Options:\n");
   printf("  -i <iterations>  Number of iterations (default: %d)\n", BENCHMARK_ITERATIONS);
   printf("  -h               Show this help message\n");
+  printf("  --no-u35         Disable u35 variant benchmarks (match SIMD variants)\n");
+  printf("  --match-simd     Alias of --no-u35; keep only variants used by SIMD\n");
   printf("\n");
   printf("Benchmark categories:\n");
   printf("  trig             Trigonometric functions\n");
@@ -270,6 +276,8 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[i], "-h") == 0) {
       print_usage(argv[0]);
       return 0;
+    } else if (strcmp(argv[i], "--no-u35") == 0 || strcmp(argv[i], "--match-simd") == 0) {
+      g_include_u35 = 0;
     } else if (strcmp(argv[i], "trig") == 0) {
       run_trig = 1;
       run_all = 0;
