@@ -296,6 +296,32 @@ void benchmark_hyperbolic_functions(uint64_t iterations) {
   free(pd_tanh); free(pd_pos); free(pd_unit); free(pd_huge);
 }
 
+void benchmark_hyperbolic_functions_f(uint64_t iterations) {
+  printf("=================================================================\n");
+  printf("Hyperbolic Functions (Single Precision)\n");
+  printf("=================================================================\n\n");
+
+  float *pf_huge = alloc_fill_float(g_pool_size, -100.0f, 100.0f);
+  float *pf_unit = alloc_fill_float(g_pool_size, -1.0f, 1.0f);
+  float *pf_pos  = alloc_fill_float(g_pool_size, 1.0f, 1e19f);
+  float *pf_tanh = alloc_fill_float(g_pool_size, -10.0f, 10.0f);
+  if (!pf_huge || !pf_unit || !pf_pos || !pf_tanh) {
+    fprintf(stderr, "alloc failed\n");
+    free(pf_huge); free(pf_unit); free(pf_pos); free(pf_tanh);
+    return;
+  }
+  RUN_SCALAR_1ARG_F(Sleef_sinhf_u10, sinhf, pf_huge, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_sinhf_u35, sinhf, pf_huge, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_coshf_u10, coshf, pf_huge, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_coshf_u35, coshf, pf_huge, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_tanhf_u10, tanhf, pf_tanh, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_tanhf_u35, tanhf, pf_tanh, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_asinhf_u10, asinhf, pf_pos, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_acoshf_u10, acoshf, pf_pos, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_atanhf_u10, atanhf, pf_unit, g_pool_size, iterations);
+  free(pf_tanh); free(pf_pos); free(pf_unit); free(pf_huge);
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -393,6 +419,7 @@ int main(int argc, char **argv) {
   
   if (run_all || run_hyp) {
     benchmark_hyperbolic_functions(iterations);
+    benchmark_hyperbolic_functions_f(iterations);
   }
   
   printf("=================================================================\n");
