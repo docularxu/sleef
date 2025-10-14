@@ -35,11 +35,13 @@
   #define SLEEF_LOG Sleef_logd2_u10sse2
   #define SLEEF_POW Sleef_powd2_u10sse2
   #define SLEEF_SQRT Sleef_sqrtd2_u05sse2
+  #define SLEEF_TANH Sleef_tanhd2_u10sse2
   #define SLEEF_SINF Sleef_sinf4_u10sse2
   #define SLEEF_COSF Sleef_cosf4_u10sse2
   #define SLEEF_TANF Sleef_tanf4_u10sse2
   #define SLEEF_EXPF Sleef_expf4_u10sse2
   #define SLEEF_LOGF Sleef_logf4_u10sse2
+  #define SLEEF_TANHF Sleef_tanhf4_u10sse2
 
 #elif defined(ENABLE_AVX2)
   #define SIMD_NAME "AVX2"
@@ -60,11 +62,13 @@
   #define SLEEF_LOG Sleef_logd4_u10avx2
   #define SLEEF_POW Sleef_powd4_u10avx2
   #define SLEEF_SQRT Sleef_sqrtd4_u05avx2
+  #define SLEEF_TANH Sleef_tanhd4_u10avx2
   #define SLEEF_SINF Sleef_sinf8_u10avx2
   #define SLEEF_COSF Sleef_cosf8_u10avx2
   #define SLEEF_TANF Sleef_tanf8_u10avx2
   #define SLEEF_EXPF Sleef_expf8_u10avx2
   #define SLEEF_LOGF Sleef_logf8_u10avx2
+  #define SLEEF_TANHF Sleef_tanhf8_u10avx2
 
 #elif defined(ENABLE_AVX512F)
   #define SIMD_NAME "AVX512F"
@@ -85,11 +89,13 @@
   #define SLEEF_LOG Sleef_logd8_u10avx512f
   #define SLEEF_POW Sleef_powd8_u10avx512f
   #define SLEEF_SQRT Sleef_sqrtd8_u05avx512f
+  #define SLEEF_TANH Sleef_tanhd8_u10avx512f
   #define SLEEF_SINF Sleef_sinf16_u10avx512f
   #define SLEEF_COSF Sleef_cosf16_u10avx512f
   #define SLEEF_TANF Sleef_tanf16_u10avx512f
   #define SLEEF_EXPF Sleef_expf16_u10avx512f
   #define SLEEF_LOGF Sleef_logf16_u10avx512f
+  #define SLEEF_TANHF Sleef_tanhf16_u10avx512f
 
 #elif defined(ENABLE_ADVSIMD)
   #define SIMD_NAME "ADVSIMD"
@@ -110,11 +116,13 @@
   #define SLEEF_LOG Sleef_logd2_u10advsimd
   #define SLEEF_POW Sleef_powd2_u10advsimd
   #define SLEEF_SQRT Sleef_sqrtd2_u05advsimd
+  #define SLEEF_TANH Sleef_tanhd2_u10advsimd
   #define SLEEF_SINF Sleef_sinf4_u10advsimd
   #define SLEEF_COSF Sleef_cosf4_u10advsimd
   #define SLEEF_TANF Sleef_tanf4_u10advsimd
   #define SLEEF_EXPF Sleef_expf4_u10advsimd
   #define SLEEF_LOGF Sleef_logf4_u10advsimd
+  #define SLEEF_TANHF Sleef_tanhf4_u10advsimd
 
 #elif defined(ENABLE_SVE)
   #define SIMD_NAME "SVE"
@@ -134,6 +142,8 @@
   #define SLEEF_TANF Sleef_tanfx_u10sve
   #define SLEEF_EXPF Sleef_expfx_u10sve
   #define SLEEF_LOGF Sleef_logfx_u10sve
+  #define SLEEF_TANH Sleef_tanhdx_u10sve
+  #define SLEEF_TANHF Sleef_tanhfx_u10sve
   #define USE_SVE 1
 
 #elif defined(ENABLE_RVVM1)
@@ -154,6 +164,8 @@
   #define SLEEF_TANF Sleef_tanfx_u10rvvm1
   #define SLEEF_EXPF Sleef_expfx_u10rvvm1
   #define SLEEF_LOGF Sleef_logfx_u10rvvm1
+  #define SLEEF_TANH Sleef_tanhdx_u10rvvm1
+  #define SLEEF_TANHF Sleef_tanhfx_u10rvvm1
 
 #elif defined(ENABLE_RVVM2)
   #define SIMD_NAME "RVV (LMUL=2)"
@@ -173,6 +185,8 @@
   #define SLEEF_TANF Sleef_tanfx_u10rvvm2
   #define SLEEF_EXPF Sleef_expfx_u10rvvm2
   #define SLEEF_LOGF Sleef_logfx_u10rvvm2
+  #define SLEEF_TANH Sleef_tanhdx_u10rvvm2
+  #define SLEEF_TANHF Sleef_tanhfx_u10rvvm2
 
 #elif defined(ENABLE_VSX)
   #define SIMD_NAME "VSX"
@@ -192,6 +206,8 @@
   #define SLEEF_TANF Sleef_tanf4_u10vsx
   #define SLEEF_EXPF Sleef_expf4_u10vsx
   #define SLEEF_LOGF Sleef_logf4_u10vsx
+  #define SLEEF_TANH Sleef_tanhd2_u10vsx
+  #define SLEEF_TANHF Sleef_tanhf4_u10vsx
 
 #elif defined(ENABLE_VXE)
   #define SIMD_NAME "VXE"
@@ -211,6 +227,8 @@
   #define SLEEF_TANF Sleef_tanf4_u10vxe
   #define SLEEF_EXPF Sleef_expf4_u10vxe
   #define SLEEF_LOGF Sleef_logf4_u10vxe
+  #define SLEEF_TANH Sleef_tanhd2_u10vxe
+  #define SLEEF_TANHF Sleef_tanhf4_u10vxe
 
 #else
   #error "No SIMD extension defined"
@@ -289,7 +307,7 @@ static float rand_float(float min, float max) {
       for (size_t i = 0; i < vector_size; ) { \
         vl = VSETVL_D(vector_size - i); \
         vdouble v = VLE_D(input + i, vl); \
-        vdouble r = func(v); \
+        vdouble r = func(v, vl); \
         VSE_D(output + i, r, vl); \
         i += vl; \
       } \
@@ -315,7 +333,7 @@ static float rand_float(float min, float max) {
       for (size_t i = 0; i < vector_size; ) { \
         vl = VSETVL_F(vector_size - i); \
         vfloat v = VLE_F(input + i, vl); \
-        vfloat r = func(v); \
+        vfloat r = func(v, vl); \
         VSE_F(output + i, r, vl); \
         i += vl; \
       } \
@@ -460,6 +478,7 @@ void benchmark_simd_functions(uint64_t iterations, size_t vector_size) {
   BENCHMARK_SIMD_1ARG_D(SLEEF_EXP, -700.0, 700.0, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_D(SLEEF_LOG, 1.0, 1e300, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_D(SLEEF_SQRT, 0.0, 1e300, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_TANH, -10.0, 10.0, iterations, vector_size);
   
   printf("\nSingle Precision Functions:\n");
   printf("-----------------------------------------------------------------\n");
@@ -468,6 +487,7 @@ void benchmark_simd_functions(uint64_t iterations, size_t vector_size) {
   BENCHMARK_SIMD_1ARG_F(SLEEF_TANF, 0.0f, 6.28f, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_F(SLEEF_EXPF, -100.0f, 100.0f, iterations, vector_size);
   BENCHMARK_SIMD_1ARG_F(SLEEF_LOGF, 1.0f, 1e38f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_TANHF, -10.0f, 10.0f, iterations, vector_size);
 }
 
 // ============================================================================
