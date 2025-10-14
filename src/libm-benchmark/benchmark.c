@@ -157,26 +157,26 @@ typedef struct {
   printf("\n"); \
 } while(0)
 
-#define RUN_SCALAR_2ARG_F(func, libm_func, poolx, pooly, pooln, iterations) do {
-  float sum = 0;
-  double start = get_time_sec();
-  for (uint64_t i = 0; i < (iterations); i++) {
-    float x = (poolx)[i % (pooln)];
-    float y = (pooly)[i % (pooln)];
-    sum += func(x, y);
-  }
-  double elapsed = get_time_sec() - start;
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, elapsed * 1e9 / (iterations), sum);
-  sum = 0;
-  start = get_time_sec();
-  for (uint64_t i = 0; i < (iterations); i++) {
-    float x = (poolx)[i % (pooln)];
-    float y = (pooly)[i % (pooln)];
-    sum += libm_func(x, y);
-  }
-  elapsed = get_time_sec() - start;
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", elapsed * 1e9 / (iterations), sum);
-  printf("\n");
+#define RUN_SCALAR_2ARG_F(func, libm_func, poolx, pooly, pooln, iterations) do { \
+  float sum = 0; \
+  double start = get_time_sec(); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    float x = (poolx)[i % (pooln)]; \
+    float y = (pooly)[i % (pooln)]; \
+    sum += func(x, y); \
+  } \
+  double elapsed = get_time_sec() - start; \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, elapsed * 1e9 / (iterations), sum); \
+  sum = 0; \
+  start = get_time_sec(); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    float x = (poolx)[i % (pooln)]; \
+    float y = (pooly)[i % (pooln)]; \
+    sum += libm_func(x, y); \
+  } \
+  elapsed = get_time_sec() - start; \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", elapsed * 1e9 / (iterations), sum); \
+  printf("\n"); \
 } while(0)
 
 void benchmark_trig_functions(uint64_t iterations) {
