@@ -500,22 +500,22 @@ void benchmark_simd_functions(uint64_t iterations, size_t vector_size) {
 
   printf("Double Precision Functions:\n");
   printf("-----------------------------------------------------------------\n");
-  BENCHMARK_SIMD_1ARG_D(SLEEF_SIN, 0.0, 6.28, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_D(SLEEF_COS, 0.0, 6.28, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_D(SLEEF_TAN, 0.0, 6.28, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_D(SLEEF_EXP, -700.0, 700.0, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_D(SLEEF_LOG, 1.0, 1e300, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_D(SLEEF_SQRT, 0.0, 1e300, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_D(SLEEF_TANH, -10.0, 10.0, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_SIN, SLEEF_SIN_STR, 0.0, 6.28, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_COS, SLEEF_COS_STR, 0.0, 6.28, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_TAN, SLEEF_TAN_STR, 0.0, 6.28, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_EXP, SLEEF_EXP_STR, -700.0, 700.0, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_LOG, SLEEF_LOG_STR, 1.0, 1e300, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_SQRT, SLEEF_SQRT_STR, 0.0, 1e300, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_D(SLEEF_TANH, SLEEF_TANH_STR, -10.0, 10.0, iterations, vector_size);
   
   printf("\nSingle Precision Functions:\n");
   printf("-----------------------------------------------------------------\n");
-  BENCHMARK_SIMD_1ARG_F(SLEEF_SINF, 0.0f, 6.28f, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_F(SLEEF_COSF, 0.0f, 6.28f, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_F(SLEEF_TANF, 0.0f, 6.28f, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_F(SLEEF_EXPF, -100.0f, 100.0f, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_F(SLEEF_LOGF, 1.0f, 1e38f, iterations, vector_size);
-  BENCHMARK_SIMD_1ARG_F(SLEEF_TANHF, -10.0f, 10.0f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_SINF, SLEEF_SINF_STR, 0.0f, 6.28f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_COSF, SLEEF_COSF_STR, 0.0f, 6.28f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_TANF, SLEEF_TANF_STR, 0.0f, 6.28f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_EXPF, SLEEF_EXPF_STR, -100.0f, 100.0f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_LOGF, SLEEF_LOGF_STR, 1.0f, 1e38f, iterations, vector_size);
+  BENCHMARK_SIMD_1ARG_F(SLEEF_TANHF, SLEEF_TANHF_STR, -10.0f, 10.0f, iterations, vector_size);
 }
 
 // ============================================================================
