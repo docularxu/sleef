@@ -1,6 +1,10 @@
 # Benchmark tool for SLEEF math library
 
 link_directories(${sleef_BINARY_DIR}/lib)
+if(CMAKE_INSTALL_PREFIX)
+  link_directories(${CMAKE_INSTALL_PREFIX}/lib64)
+  link_directories(${CMAKE_INSTALL_PREFIX}/lib)
+endif()
 include_directories(${sleef_BINARY_DIR}/include)
 
 set(CMAKE_C_FLAGS "${ORG_CMAKE_C_FLAGS} ${SLEEF_C_FLAGS}")
@@ -8,6 +12,9 @@ set(CMAKE_C_FLAGS "${ORG_CMAKE_C_FLAGS} ${SLEEF_C_FLAGS}")
 # Scalar benchmark
 add_executable(benchmark benchmark.c)
 target_link_libraries(benchmark ${TARGET_LIBSLEEF} ${LIBM})
+if(TLFLOAT_LIBRARIES)
+  target_link_libraries(benchmark ${TLFLOAT_LIBRARIES})
+endif()
 target_compile_definitions(benchmark PRIVATE ${COMMON_TARGET_DEFINITIONS})
 set_target_properties(benchmark PROPERTIES C_STANDARD 99)
 add_dependencies(benchmark ${TARGET_HEADERS})
