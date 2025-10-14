@@ -18,6 +18,8 @@
 // Global toggle to control inclusion of u35 variants at runtime.
 // Default: include u35. Can be disabled via --no-u35 / --match-simd.
 static int g_include_u35 = 1;
+static size_t g_pool_size = 1000000; // default input pool size for scalar
+static uint64_t g_seed = 0;          // 0 = default seed
 
 // Number of iterations for each benchmark
 #ifndef BENCHMARK_ITERATIONS
@@ -45,6 +47,10 @@ static double get_time_sec(void) {
 
 static uint64_t xorshift_state = 0x123456789abcdefULL;
 
+static void srand_xorshift(uint64_t seed) {
+  if (seed != 0) xorshift_state = seed;
+}
+
 static double rand_double(double min, double max) {
   xorshift_state ^= xorshift_state << 13;
   xorshift_state ^= xorshift_state >> 7;
@@ -62,7 +68,25 @@ static float rand_float(float min, float max) {
 }
 
 // ============================================================================
-// Benchmark functions
+// Input pool helpers (allocate, fill, free)
+// ============================================================================
+
+static double *alloc_fill_double(size_t n, double minv, double maxv) {
+  double *buf = (double *)malloc(sizeof(double) * n);
+  if (!buf) return NULL;
+  for (size_t i = 0; i < n; i++) buf[i] = rand_double(minv, maxv);
+  return buf;
+}
+
+static float *alloc_fill_float(size_t n, float minv, float maxv) {
+  float *buf = (float *)malloc(sizeof(float) * n);
+  if (!buf) return NULL;
+  for (size_t i = 0; i < n; i++) buf[i] = rand_float(minv, maxv);
+  return buf;
+}
+
+// ============================================================================
+// Benchmark functions (scalar) - use pre-generated pools
 // ============================================================================
 
 typedef struct {
@@ -71,74 +95,65 @@ typedef struct {
   double max_arg;
 } BenchmarkConfig;
 
-#define BENCHMARK_SCALAR_1ARG(func, libm_func, min_val, max_val, iterations) do { \
+#define RUN_SCALAR_1ARG_D(func, libm_func, pool, pooln, iterations) do { \
   double sum = 0; \
   double start = get_time_sec(); \
-  for (uint64_t i = 0; i < iterations; i++) { \
-    double x = rand_double(min_val, max_val); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    double x = (pool)[i % (pooln)]; \
     sum += func(x); \
   } \
   double elapsed = get_time_sec() - start; \
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, \
-         elapsed * 1e9 / iterations, sum); \
-  \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, elapsed * 1e9 / (iterations), sum); \
   sum = 0; \
   start = get_time_sec(); \
-  for (uint64_t i = 0; i < iterations; i++) { \
-    double x = rand_double(min_val, max_val); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    double x = (pool)[i % (pooln)]; \
     sum += libm_func(x); \
   } \
   elapsed = get_time_sec() - start; \
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", \
-         elapsed * 1e9 / iterations, sum); \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", elapsed * 1e9 / (iterations), sum); \
   printf("\n"); \
 } while(0)
 
-#define BENCHMARK_SCALAR_1ARG_F(func, libm_func, min_val, max_val, iterations) do { \
+#define RUN_SCALAR_1ARG_F(func, libm_func, pool, pooln, iterations) do { \
   float sum = 0; \
   double start = get_time_sec(); \
-  for (uint64_t i = 0; i < iterations; i++) { \
-    float x = rand_float(min_val, max_val); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    float x = (pool)[i % (pooln)]; \
     sum += func(x); \
   } \
   double elapsed = get_time_sec() - start; \
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, \
-         elapsed * 1e9 / iterations, sum); \
-  \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, elapsed * 1e9 / (iterations), sum); \
   sum = 0; \
   start = get_time_sec(); \
-  for (uint64_t i = 0; i < iterations; i++) { \
-    float x = rand_float(min_val, max_val); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    float x = (pool)[i % (pooln)]; \
     sum += libm_func(x); \
   } \
   elapsed = get_time_sec() - start; \
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", \
-         elapsed * 1e9 / iterations, sum); \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", elapsed * 1e9 / (iterations), sum); \
   printf("\n"); \
 } while(0)
 
-#define BENCHMARK_SCALAR_2ARG(func, libm_func, min_val, max_val, iterations) do { \
+#define RUN_SCALAR_2ARG_D(func, libm_func, poolx, pooly, pooln, iterations) do { \
   double sum = 0; \
   double start = get_time_sec(); \
-  for (uint64_t i = 0; i < iterations; i++) { \
-    double x = rand_double(min_val, max_val); \
-    double y = rand_double(min_val, max_val); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    double x = (poolx)[i % (pooln)]; \
+    double y = (pooly)[i % (pooln)]; \
     sum += func(x, y); \
   } \
   double elapsed = get_time_sec() - start; \
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, \
-         elapsed * 1e9 / iterations, sum); \
-  \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #func, elapsed * 1e9 / (iterations), sum); \
   sum = 0; \
   start = get_time_sec(); \
-  for (uint64_t i = 0; i < iterations; i++) { \
-    double x = rand_double(min_val, max_val); \
-    double y = rand_double(min_val, max_val); \
+  for (uint64_t i = 0; i < (iterations); i++) { \
+    double x = (poolx)[i % (pooln)]; \
+    double y = (pooly)[i % (pooln)]; \
     sum += libm_func(x, y); \
   } \
   elapsed = get_time_sec() - start; \
-  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", \
-         elapsed * 1e9 / iterations, sum); \
+  printf("%-30s: %10.3f ns/call  (sum=%g)\n", #libm_func " (reference)", elapsed * 1e9 / (iterations), sum); \
   printf("\n"); \
 } while(0)
 
@@ -147,12 +162,15 @@ void benchmark_trig_functions(uint64_t iterations) {
   printf("Trigonometric Functions (Double Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_1ARG(Sleef_sin_u10, sin, 0.0, 6.28, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_sin_u35, sin, 0.0, 6.28, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_cos_u10, cos, 0.0, 6.28, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_cos_u35, cos, 0.0, 6.28, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_tan_u10, tan, 0.0, 6.28, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_tan_u35, tan, 0.0, 6.28, iterations);
+  double *pool = alloc_fill_double(g_pool_size, 0.0, 6.28);
+  if (!pool) { fprintf(stderr, "alloc failed\n"); return; }
+  RUN_SCALAR_1ARG_D(Sleef_sin_u10, sin, pool, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_sin_u35, sin, pool, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_cos_u10, cos, pool, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_cos_u35, cos, pool, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_tan_u10, tan, pool, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_tan_u35, tan, pool, g_pool_size, iterations);
+  free(pool); pool = NULL;
 }
 
 void benchmark_trig_functions_f(uint64_t iterations) {
@@ -160,12 +178,15 @@ void benchmark_trig_functions_f(uint64_t iterations) {
   printf("Trigonometric Functions (Single Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_1ARG_F(Sleef_sinf_u10, sinf, 0.0f, 6.28f, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_sinf_u35, sinf, 0.0f, 6.28f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_cosf_u10, cosf, 0.0f, 6.28f, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_cosf_u35, cosf, 0.0f, 6.28f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_tanf_u10, tanf, 0.0f, 6.28f, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_tanf_u35, tanf, 0.0f, 6.28f, iterations);
+  float *pool = alloc_fill_float(g_pool_size, 0.0f, 6.28f);
+  if (!pool) { fprintf(stderr, "alloc failed\n"); return; }
+  RUN_SCALAR_1ARG_F(Sleef_sinf_u10, sinf, pool, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_sinf_u35, sinf, pool, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_cosf_u10, cosf, pool, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_cosf_u35, cosf, pool, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_tanf_u10, tanf, pool, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_tanf_u35, tanf, pool, g_pool_size, iterations);
+  free(pool); pool = NULL;
 }
 
 void benchmark_exp_log_functions(uint64_t iterations) {
@@ -173,13 +194,21 @@ void benchmark_exp_log_functions(uint64_t iterations) {
   printf("Exponential and Logarithm Functions (Double Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_1ARG(Sleef_exp_u10, exp, -700.0, 700.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_log_u10, log, 1.0, 1e300, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_log_u35, log, 1.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_log10_u10, log10, 1.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_log2_u10, log2, 1.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_exp2_u10, exp2, -1000.0, 1000.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_exp10_u10, exp10, -300.0, 300.0, iterations);
+  double *pd_exp = alloc_fill_double(g_pool_size, -700.0, 700.0);
+  double *pd_ln  = alloc_fill_double(g_pool_size, 1.0, 1e300);
+  if (!pd_exp || !pd_ln) { fprintf(stderr, "alloc failed\n"); free(pd_exp); free(pd_ln); return; }
+  RUN_SCALAR_1ARG_D(Sleef_exp_u10, exp, pd_exp, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_log_u10, log, pd_ln, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_log_u35, log, pd_ln, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_log10_u10, log10, pd_ln, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_log2_u10, log2, pd_ln, g_pool_size, iterations);
+  double *pd_exp2 = alloc_fill_double(g_pool_size, -1000.0, 1000.0);
+  if (!pd_exp2) { fprintf(stderr, "alloc failed\n"); free(pd_exp); free(pd_ln); return; }
+  RUN_SCALAR_1ARG_D(Sleef_exp2_u10, exp2, pd_exp2, g_pool_size, iterations);
+  double *pd_exp10 = alloc_fill_double(g_pool_size, -300.0, 300.0);
+  if (!pd_exp10) { fprintf(stderr, "alloc failed\n"); free(pd_exp); free(pd_ln); free(pd_exp2); return; }
+  RUN_SCALAR_1ARG_D(Sleef_exp10_u10, exp10, pd_exp10, g_pool_size, iterations);
+  free(pd_exp10); free(pd_exp2); free(pd_ln); free(pd_exp);
 }
 
 void benchmark_exp_log_functions_f(uint64_t iterations) {
@@ -187,13 +216,21 @@ void benchmark_exp_log_functions_f(uint64_t iterations) {
   printf("Exponential and Logarithm Functions (Single Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_1ARG_F(Sleef_expf_u10, expf, -100.0f, 100.0f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_logf_u10, logf, 1.0f, 1e38f, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG_F(Sleef_logf_u35, logf, 1.0f, 1e38f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_log10f_u10, log10f, 1.0f, 1e38f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_log2f_u10, log2f, 1.0f, 1e38f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_exp2f_u10, exp2f, -100.0f, 100.0f, iterations);
-  BENCHMARK_SCALAR_1ARG_F(Sleef_exp10f_u10, exp10f, -38.0f, 38.0f, iterations);
+  float *pf_exp = alloc_fill_float(g_pool_size, -100.0f, 100.0f);
+  float *pf_ln  = alloc_fill_float(g_pool_size, 1.0f, 1e38f);
+  if (!pf_exp || !pf_ln) { fprintf(stderr, "alloc failed\n"); free(pf_exp); free(pf_ln); return; }
+  RUN_SCALAR_1ARG_F(Sleef_expf_u10, expf, pf_exp, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_logf_u10, logf, pf_ln, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_F(Sleef_logf_u35, logf, pf_ln, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_log10f_u10, log10f, pf_ln, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_F(Sleef_log2f_u10, log2f, pf_ln, g_pool_size, iterations);
+  float *pf_exp2 = alloc_fill_float(g_pool_size, -100.0f, 100.0f);
+  if (!pf_exp2) { fprintf(stderr, "alloc failed\n"); free(pf_exp); free(pf_ln); return; }
+  RUN_SCALAR_1ARG_F(Sleef_exp2f_u10, exp2f, pf_exp2, g_pool_size, iterations);
+  float *pf_exp10 = alloc_fill_float(g_pool_size, -38.0f, 38.0f);
+  if (!pf_exp10) { fprintf(stderr, "alloc failed\n"); free(pf_exp); free(pf_ln); free(pf_exp2); return; }
+  RUN_SCALAR_1ARG_F(Sleef_exp10f_u10, exp10f, pf_exp10, g_pool_size, iterations);
+  free(pf_exp10); free(pf_exp2); free(pf_ln); free(pf_exp);
 }
 
 void benchmark_power_functions(uint64_t iterations) {
@@ -201,11 +238,17 @@ void benchmark_power_functions(uint64_t iterations) {
   printf("Power Functions (Double Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_2ARG(Sleef_pow_u10, pow, -30.0, 30.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_sqrt_u05, sqrt, 0.0, 1e300, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_sqrt_u35, sqrt, 0.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_cbrt_u10, cbrt, -1e100, 1e100, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_cbrt_u35, cbrt, -1e100, 1e100, iterations);
+  double *pd_powx = alloc_fill_double(g_pool_size, -30.0, 30.0);
+  double *pd_powy = alloc_fill_double(g_pool_size, -30.0, 30.0);
+  double *pd_sqrt = alloc_fill_double(g_pool_size, 0.0, 1e300);
+  double *pd_cbrt = alloc_fill_double(g_pool_size, -1e100, 1e100);
+  if (!pd_powx || !pd_powy || !pd_sqrt || !pd_cbrt) { fprintf(stderr, "alloc failed\n"); free(pd_powx); free(pd_powy); free(pd_sqrt); free(pd_cbrt); return; }
+  RUN_SCALAR_2ARG_D(Sleef_pow_u10, pow, pd_powx, pd_powy, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_sqrt_u05, sqrt, pd_sqrt, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_sqrt_u35, sqrt, pd_sqrt, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_cbrt_u10, cbrt, pd_cbrt, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_cbrt_u35, cbrt, pd_cbrt, g_pool_size, iterations);
+  free(pd_cbrt); free(pd_sqrt); free(pd_powy); free(pd_powx);
 }
 
 void benchmark_inverse_trig_functions(uint64_t iterations) {
@@ -213,14 +256,18 @@ void benchmark_inverse_trig_functions(uint64_t iterations) {
   printf("Inverse Trigonometric Functions (Double Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_1ARG(Sleef_asin_u10, asin, -1.0, 1.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_asin_u35, asin, -1.0, 1.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_acos_u10, acos, -1.0, 1.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_acos_u35, acos, -1.0, 1.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_atan_u10, atan, -10.0, 10.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_atan_u35, atan, -10.0, 10.0, iterations);
-  BENCHMARK_SCALAR_2ARG(Sleef_atan2_u10, atan2, -10.0, 10.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_2ARG(Sleef_atan2_u35, atan2, -10.0, 10.0, iterations);
+  double *pd_unit = alloc_fill_double(g_pool_size, -1.0, 1.0);
+  double *pd_tan  = alloc_fill_double(g_pool_size, -10.0, 10.0);
+  if (!pd_unit || !pd_tan) { fprintf(stderr, "alloc failed\n"); free(pd_unit); free(pd_tan); return; }
+  RUN_SCALAR_1ARG_D(Sleef_asin_u10, asin, pd_unit, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_asin_u35, asin, pd_unit, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_acos_u10, acos, pd_unit, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_acos_u35, acos, pd_unit, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_atan_u10, atan, pd_tan, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_atan_u35, atan, pd_tan, g_pool_size, iterations);
+  RUN_SCALAR_2ARG_D(Sleef_atan2_u10, atan2, pd_tan, pd_tan, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_2ARG_D(Sleef_atan2_u35, atan2, pd_tan, pd_tan, g_pool_size, iterations);
+  free(pd_tan); free(pd_unit);
 }
 
 void benchmark_hyperbolic_functions(uint64_t iterations) {
@@ -228,15 +275,20 @@ void benchmark_hyperbolic_functions(uint64_t iterations) {
   printf("Hyperbolic Functions (Double Precision)\n");
   printf("=================================================================\n\n");
   
-  BENCHMARK_SCALAR_1ARG(Sleef_sinh_u10, sinh, -700.0, 700.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_sinh_u35, sinh, -700.0, 700.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_cosh_u10, cosh, -700.0, 700.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_cosh_u35, cosh, -700.0, 700.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_tanh_u10, tanh, -10.0, 10.0, iterations);
-  if (g_include_u35) BENCHMARK_SCALAR_1ARG(Sleef_tanh_u35, tanh, -10.0, 10.0, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_asinh_u10, asinh, -1e300, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_acosh_u10, acosh, 1.0, 1e300, iterations);
-  BENCHMARK_SCALAR_1ARG(Sleef_atanh_u10, atanh, -1.0, 1.0, iterations);
+  double *pd_huge = alloc_fill_double(g_pool_size, -700.0, 700.0);
+  double *pd_unit = alloc_fill_double(g_pool_size, -1.0, 1.0);
+  double *pd_pos  = alloc_fill_double(g_pool_size, 1.0, 1e300);
+  if (!pd_huge || !pd_unit || !pd_pos) { fprintf(stderr, "alloc failed\n"); free(pd_huge); free(pd_unit); free(pd_pos); return; }
+  RUN_SCALAR_1ARG_D(Sleef_sinh_u10, sinh, pd_huge, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_sinh_u35, sinh, pd_huge, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_cosh_u10, cosh, pd_huge, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_cosh_u35, cosh, pd_huge, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_tanh_u10, tanh, pd_unit, g_pool_size, iterations);
+  if (g_include_u35) RUN_SCALAR_1ARG_D(Sleef_tanh_u35, tanh, pd_unit, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_asinh_u10, asinh, pd_pos, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_acosh_u10, acosh, pd_pos, g_pool_size, iterations);
+  RUN_SCALAR_1ARG_D(Sleef_atanh_u10, atanh, pd_unit, g_pool_size, iterations);
+  free(pd_pos); free(pd_unit); free(pd_huge);
 }
 
 // ============================================================================
@@ -247,6 +299,8 @@ void print_usage(const char *prog) {
   printf("Usage: %s [options]\n", prog);
   printf("Options:\n");
   printf("  -i <iterations>  Number of iterations (default: %d)\n", BENCHMARK_ITERATIONS);
+  printf("  -s <pool_size>   Input pool size for scalar (default: %zu)\n", (size_t)1000000);
+  printf("  --seed <value>   RNG seed for reproducible pools\n");
   printf("  -h               Show this help message\n");
   printf("  --no-u35         Disable u35 variant benchmarks (match SIMD variants)\n");
   printf("  --match-simd     Alias of --no-u35; keep only variants used by SIMD\n");
@@ -273,6 +327,11 @@ int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-i") == 0 && i + 1 < argc) {
       iterations = strtoull(argv[++i], NULL, 10);
+    } else if (strcmp(argv[i], "-s") == 0 && i + 1 < argc) {
+      g_pool_size = strtoull(argv[++i], NULL, 10);
+      if (g_pool_size == 0) g_pool_size = 1;
+    } else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc) {
+      g_seed = strtoull(argv[++i], NULL, 10);
     } else if (strcmp(argv[i], "-h") == 0) {
       print_usage(argv[0]);
       return 0;
@@ -303,7 +362,11 @@ int main(int argc, char **argv) {
   printf("SLEEF Math Library Benchmark\n");
   printf("=================================================================\n");
   printf("Iterations per function: %llu\n", (unsigned long long)iterations);
+  printf("Scalar input pool size: %zu\n", g_pool_size);
   printf("=================================================================\n\n");
+
+  // Initialize RNG seed if requested
+  if (g_seed) srand_xorshift(g_seed);
   
   if (run_all || run_trig) {
     benchmark_trig_functions(iterations);
