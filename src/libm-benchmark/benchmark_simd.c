@@ -3,6 +3,9 @@
 //    (See accompanying file LICENSE.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+#define _ISOC11_SOURCE
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -286,7 +289,7 @@ static float rand_float(float min, float max) {
       for (size_t i = 0; i < vector_size; ) { \
         vl = VSETVL_D(vector_size - i); \
         vdouble v = VLE_D(input + i, vl); \
-        vdouble r = func(v, vl); \
+        vdouble r = func(v); \
         VSE_D(output + i, r, vl); \
         i += vl; \
       } \
@@ -312,7 +315,7 @@ static float rand_float(float min, float max) {
       for (size_t i = 0; i < vector_size; ) { \
         vl = VSETVL_F(vector_size - i); \
         vfloat v = VLE_F(input + i, vl); \
-        vfloat r = func(v, vl); \
+        vfloat r = func(v); \
         VSE_F(output + i, r, vl); \
         i += vl; \
       } \
