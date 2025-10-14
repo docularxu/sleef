@@ -363,6 +363,13 @@
   #error "No SIMD extension defined"
 #endif
 
+#ifndef SLEEF_SQRTF
+#define SLEEF_SQRTF SLEEF_SQRT
+#endif
+#ifndef SLEEF_SQRTF_STR
+#define SLEEF_SQRTF_STR STRINGIFY(SLEEF_SQRTF)
+#endif
+
 #ifndef BENCHMARK_ITERATIONS
 #define BENCHMARK_ITERATIONS 10000000
 #endif
