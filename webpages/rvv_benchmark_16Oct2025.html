@@ -213,9 +213,16 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            flex: 0 0 calc(50% - 10px);
-            max-width: calc(50% - 10px);
-            min-width: calc(50% - 10px);
+        }
+        .env-card.software {
+            flex: 0 0 40%;
+            max-width: 40%;
+            min-width: 40%;
+        }
+        .env-card.hardware {
+            flex: 0 0 60%;
+            max-width: 60%;
+            min-width: 60%;
         }
         .env-card h3 {
             margin-top: 0;
@@ -296,6 +303,25 @@
             font-size: 0.9em;
             line-height: 1.4;
         }
+        @media (max-width: 900px) {
+            .author-block {
+                flex-direction: column;
+                text-align: center;
+            }
+            .author-links a {
+                display: block;
+                margin: 6px 0;
+            }
+            .env-grid {
+                flex-wrap: wrap;
+            }
+            .env-card.software,
+            .env-card.hardware {
+                flex: 0 0 100%;
+                max-width: 100%;
+                min-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -333,7 +359,7 @@
         <section class="environment">
             <h2>Benchmark Environment</h2>
             <div class="env-grid">
-                <div class="env-card" style="flex: 0 0 40%; max-width: 40%; min-width: 40%;">
+                <div class="env-card software">
                     <div class="env-title">Software Platform</div>
                     <div class="env-logos">
                         <div class="env-logo">
@@ -349,7 +375,7 @@
                         <a href="https://images.fedoravforce.org" target="_blank" rel="noopener">images.fedoravforce.org</a>
                     </p>
                 </div>
-                <div class="env-card" style="flex: 0 0 60%; max-width: 60%; min-width: 60%;">
+                <div class="env-card hardware">
                     <div class="env-title">Hardware Platform</div>
                     <div class="env-logos">
                         <div class="env-logo">
