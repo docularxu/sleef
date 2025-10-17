@@ -1,0 +1,272 @@
+# Makefile for GELU Kernel using SLEEF
+# 
+# Usage:
+#   make -f Makefile.gelu all          # Build all available targets
+#   make -f Makefile.gelu sse2         # Build SSE2 version
+#   make -f Makefile.gelu avx2         # Build AVX2 version
+#   make -f Makefile.gelu test         # Build and run tests
+#   make -f Makefile.gelu clean        # Clean all builds
+
+CC = gcc
+CFLAGS = -O3 -Wall -Wextra
+LDFLAGS = -lsleef -lm
+
+# Detect host architecture
+ARCH := $(shell uname -m)
+
+# Source files
+SRC = gelu_kernel.c
+TARGETS =
+
+# ============================================================================
+# x86-64 targets
+# ============================================================================
+ifeq ($(ARCH),x86_64)
+
+gelu_sse2: $(SRC)
+	$(CC) $(CFLAGS) -msse2 -DENABLE_SSE2 $< $(LDFLAGS) -o $@
+
+gelu_avx2: $(SRC)
+	$(CC) $(CFLAGS) -mavx2 -mfma -DENABLE_AVX2 $< $(LDFLAGS) -o $@
+
+gelu_avx512: $(SRC)
+	$(CC) $(CFLAGS) -mavx512f -DENABLE_AVX512F $< $(LDFLAGS) -o $@
+
+TARGETS += gelu_sse2 gelu_avx2
+
+# Only build AVX-512 if supported (check via /proc/cpuinfo or similar)
+ifneq ($(wildcard /proc/cpuinfo),)
+  HAS_AVX512 := $(shell grep -q avx512f /proc/cpuinfo && echo yes)
+  ifeq ($(HAS_AVX512),yes)
+    TARGETS += gelu_avx512
+  endif
+endif
+
+endif
+
+# ============================================================================
+# ARM targets
+# ============================================================================
+ifeq ($(ARCH),aarch64)
+
+gelu_neon: $(SRC)
+	$(CC) $(CFLAGS) -DENABLE_ADVSIMD $< $(LDFLAGS) -o $@
+
+gelu_sve: $(SRC)
+	$(CC) $(CFLAGS) -march=armv8-a+sve -DENABLE_SVE $< $(LDFLAGS) -o $@
+
+TARGETS += gelu_neon
+
+# Check if SVE is available
+ifneq ($(wildcard /proc/cpuinfo),)
+  HAS_SVE := $(shell grep -q sve /proc/cpuinfo && echo yes)
+  ifeq ($(HAS_SVE),yes)
+    TARGETS += gelu_sve
+  endif
+endif
+
+endif
+
+# ============================================================================
+# RISC-V targets (native compilation on RISC-V machine)
+# ============================================================================
+ifeq ($(ARCH),riscv64)
+
+# RISC-V Vector specific flags (can be customized)
+#
+# Common RISC-V ISA extensions to add to -march:
+#   _zba, _zbb, _zbs    - Bit manipulation (address gen, basic, single bit)
+#   _zvbb               - Vector bit manipulation
+#   _zvfh, _zfh         - Half-precision float (FP16)
+#   _zvl128b, _zvl256b  - Minimum vector length guarantees
+#
+# Examples:
+#   make RVV_VLEN=256                           # Force 256-bit vectors
+#   make RVV_MAX_LMUL=2                         # Limit to LMUL=2
+#   make RVV_MARCH="rv64gcv_zba_zbb"           # Custom march string
+#   make MARCH_PRESET=spacemit                  # Use board preset
+#   make RVV_EXTRA_FLAGS="-g"                  # Add extra flags
+
+# -march string (default or preset-based)
+ifndef RVV_MARCH
+  ifdef MARCH_PRESET
+    ifeq ($(MARCH_PRESET),spacemit)
+      RVV_MARCH := rv64gcv_zba_zbb_zbs_zfh_zvfh
+    else ifeq ($(MARCH_PRESET),k1)
+      RVV_MARCH := rv64gcv_zba_zbb_zbs_zfh_zvfh
+    else ifeq ($(MARCH_PRESET),jupiter)
+      RVV_MARCH := rv64gcv_zba_zbb_zbs_zfh_zvfh
+    else ifeq ($(MARCH_PRESET),milkv-jupiter)
+      RVV_MARCH := rv64gcv_zba_zbb_zbs_zfh_zvfh
+    else ifeq ($(MARCH_PRESET),starfive2)
+      RVV_MARCH := rv64gcv
+    else ifeq ($(MARCH_PRESET),visionfive2)
+      RVV_MARCH := rv64gcv
+    else ifeq ($(MARCH_PRESET),sophgo)
+      RVV_MARCH := rv64gcv_zba_zbb_zbs_zfh_zvfh
+    else ifeq ($(MARCH_PRESET),sg2042)
+      RVV_MARCH := rv64gcv_zba_zbb_zbs_zfh_zvfh
+    else ifeq ($(MARCH_PRESET),sifive)
+      RVV_MARCH := rv64gcv
+    else
+      RVV_MARCH := rv64gcv
+    endif
+  else
+    RVV_MARCH := rv64gcv
+  endif
+endif
+
+RVV_FLAGS := -march=$(RVV_MARCH) -ftree-vectorize -fno-math-errno
+
+ifdef RVV_VLEN
+	RVV_FLAGS += -mrvv-vector-bits=zvl$(RVV_VLEN)b
+endif
+
+ifdef RVV_MAX_LMUL
+	RVV_FLAGS += -mrvv-max-lmul=$(RVV_MAX_LMUL)
+endif
+
+ifdef RVV_EXTRA_FLAGS
+	RVV_FLAGS += $(RVV_EXTRA_FLAGS)
+endif
+
+# Use native compiler when building on RISC-V machine
+gelu_rvvm1: $(SRC)
+	$(CC) $(CFLAGS) $(RVV_FLAGS) -DENABLE_RVVM1 $< $(LDFLAGS) -o $@
+
+gelu_rvvm2: $(SRC)
+	$(CC) $(CFLAGS) $(RVV_FLAGS) -DENABLE_RVVM2 $< $(LDFLAGS) -o $@
+
+TARGETS += gelu_rvvm1 gelu_rvvm2
+
+endif
+
+# ============================================================================
+# Cross-compilation targets
+# ============================================================================
+
+# ARM cross-compilation
+.PHONY: cross-arm-neon cross-arm-sve
+cross-arm-neon: $(SRC)
+	aarch64-linux-gnu-gcc $(CFLAGS) -DENABLE_ADVSIMD $< $(LDFLAGS) -o gelu_neon
+
+cross-arm-sve: $(SRC)
+	aarch64-linux-gnu-gcc $(CFLAGS) -march=armv8-a+sve -DENABLE_SVE $< $(LDFLAGS) -o gelu_sve
+
+# RISC-V cross-compilation
+.PHONY: cross-riscv-m1 cross-riscv-m2
+cross-riscv-m1: $(SRC)
+	riscv64-unknown-linux-gnu-gcc $(CFLAGS) -march=rv64gcv -DENABLE_RVVM1 $< $(LDFLAGS) -o gelu_rvvm1
+
+cross-riscv-m2: $(SRC)
+	riscv64-unknown-linux-gnu-gcc $(CFLAGS) -march=rv64gcv -DENABLE_RVVM2 $< $(LDFLAGS) -o gelu_rvvm2
+
+# ============================================================================
+# Shared library targets
+# ============================================================================
+
+libgelu_sse2.so: $(SRC)
+	$(CC) $(CFLAGS) -msse2 -DENABLE_SSE2 -fPIC -shared $< $(LDFLAGS) -o $@
+
+libgelu_avx2.so: $(SRC)
+	$(CC) $(CFLAGS) -mavx2 -mfma -DENABLE_AVX2 -fPIC -shared $< $(LDFLAGS) -o $@
+
+libgelu_avx512.so: $(SRC)
+	$(CC) $(CFLAGS) -mavx512f -DENABLE_AVX512F -fPIC -shared $< $(LDFLAGS) -o $@
+
+libgelu_neon.so: $(SRC)
+	$(CC) $(CFLAGS) -DENABLE_ADVSIMD -fPIC -shared $< $(LDFLAGS) -o $@
+
+libgelu_sve.so: $(SRC)
+	$(CC) $(CFLAGS) -march=armv8-a+sve -DENABLE_SVE -fPIC -shared $< $(LDFLAGS) -o $@
+
+# RISC-V shared library flags (reuse RVV_FLAGS computed above)
+RVV_LIB_FLAGS := $(RVV_FLAGS)
+
+libgelu_rvvm1.so: $(SRC)
+	$(CC) $(CFLAGS) $(RVV_LIB_FLAGS) -DENABLE_RVVM1 -fPIC -shared $< $(LDFLAGS) -o $@
+
+libgelu_rvvm2.so: $(SRC)
+	$(CC) $(CFLAGS) $(RVV_LIB_FLAGS) -DENABLE_RVVM2 -fPIC -shared $< $(LDFLAGS) -o $@
+
+# ============================================================================
+# Build rules
+# ============================================================================
+
+.PHONY: all clean test benchmark help libs
+
+all: $(TARGETS)
+	@echo "Built targets: $(TARGETS)"
+
+libs: $(patsubst gelu_%,libgelu_%.so,$(TARGETS))
+	@echo "Built shared libraries"
+
+clean:
+	rm -f gelu_* libgelu_*.so
+	@echo "Cleaned all builds"
+
+test: $(TARGETS)
+	@echo "Running tests..."
+	@for target in $(TARGETS); do \
+		echo ""; \
+		echo "========================================"; \
+		echo "Testing $$target"; \
+		echo "========================================"; \
+		./$$target 1000 10 || exit 1; \
+	done
+	@echo ""
+	@echo "All tests passed!"
+
+benchmark: $(TARGETS)
+	@echo "Running benchmarks..."
+	@for target in $(TARGETS); do \
+		echo ""; \
+		echo "========================================"; \
+		echo "Benchmarking $$target"; \
+		echo "========================================"; \
+		./$$target 1048576 100; \
+	done
+
+help:
+	@echo "GELU Kernel Makefile"
+	@echo "===================="
+	@echo ""
+	@echo "Detected architecture: $(ARCH)"
+	@echo "Available targets: $(TARGETS)"
+	@echo ""
+	@echo "Usage:"
+	@echo "  make -f Makefile.gelu all          # Build all available targets"
+	@echo "  make -f Makefile.gelu sse2         # Build SSE2 version (x86-64)"
+	@echo "  make -f Makefile.gelu avx2         # Build AVX2 version (x86-64)"
+	@echo "  make -f Makefile.gelu avx512       # Build AVX-512 version (x86-64)"
+	@echo "  make -f Makefile.gelu neon         # Build NEON version (ARM)"
+	@echo "  make -f Makefile.gelu sve          # Build SVE version (ARM)"
+	@echo "  make -f Makefile.gelu rvvm1        # Build RVV LMUL=1 (RISC-V)"
+	@echo "  make -f Makefile.gelu rvvm2        # Build RVV LMUL=2 (RISC-V)"
+	@echo "  make -f Makefile.gelu libs         # Build shared libraries"
+	@echo "  make -f Makefile.gelu test         # Build and run tests"
+	@echo "  make -f Makefile.gelu benchmark    # Build and run benchmarks"
+	@echo "  make -f Makefile.gelu clean        # Clean all builds"
+	@echo ""
+	@echo "Cross-compilation:"
+	@echo "  make -f Makefile.gelu cross-arm-neon    # Cross-compile for ARM NEON"
+	@echo "  make -f Makefile.gelu cross-arm-sve     # Cross-compile for ARM SVE"
+	@echo "  make -f Makefile.gelu cross-riscv-m1    # Cross-compile for RISC-V"
+	@echo "  make -f Makefile.gelu cross-riscv-m2    # Cross-compile for RISC-V"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  CC       - C compiler (default: gcc)"
+	@echo "  CFLAGS   - Compiler flags (default: -O3 -Wall -Wextra)"
+	@echo "  LDFLAGS  - Linker flags (default: -lsleef -lm)"
+
+# Shorthand aliases
+.PHONY: sse2 avx2 avx512 neon sve rvvm1 rvvm2
+sse2: gelu_sse2
+avx2: gelu_avx2
+avx512: gelu_avx512
+neon: gelu_neon
+sve: gelu_sve
+rvvm1: gelu_rvvm1
+rvvm2: gelu_rvvm2
+
+
