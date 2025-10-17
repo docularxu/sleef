@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GELU Kernel Benchmark (RISC-V RVV): erf/tanh - 17 Oct 2025</title>
+    <title>GELU Kernel Benchmarks: GELU (erf/tanh) on RISC-V RVV - 17 Oct 2025</title>
     
     <style>
         body {
@@ -225,8 +225,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>GELU Kernel Benchmarks: erf/tanh on RISC-V RVV</h1>
-            <p>Comparison of libm scalar vs. SLEEF vector implementations used in GELU. Results captured on 17 Oct 2025.</p>
+            <h1>GELU Kernel Benchmarks: GELU (erf/tanh) on RISC-V RVV</h1>
+            <p>Comparison of libm scalar vs. SLEEF vector GELU implementations (erf exact vs tanh approximation). Results captured on 17 Oct 2025.</p>
         </header>
 
         <section class="author-block">
@@ -289,38 +289,96 @@
         </section>
 
         <section class="detail-section">
+            <h2>GELU Kernel using SLEEF</h2>
+            <p>This implementation provides high-performance vectorized GELU (Gaussian Error Linear Unit) activation functions using SLEEF's math library across multiple SIMD architectures.</p>
+            <h3>What is GELU?</h3>
+            <p>GELU is an activation function commonly used in neural networks, especially in Transformer models like BERT and GPT. It has two formulations:</p>
+            <ol>
+                <li><strong>Exact version</strong>: <code>GELU(x) = 0.5 * x * (1 + erf(x/&radic;2))</code></li>
+                <li><strong>Tanh approximation</strong>: <code>GELU(x) ≈ 0.5 * x * (1 + tanh(&radic;(2/&pi;) * (x + 0.044715 * x<sup>3</sup>)))</code></li>
+            </ol>
+        </section>
+
+        <section class="detail-section">
             <h3>Benchmark Harness</h3>
             <p>GELU kernel benchmarks were built and run from the <code>gelu/</code> directory.</p>
+            <p>Source code: GitHub repository <code>git@github.com:docularxu/sleef.git</code> (fork/clone of
+                <a href="https://github.com/shibatch/sleef" target="_blank" rel="noopener">shibatch/sleef</a>),
+                branch <code>working.sleef.bench</code>.
+                Browse: <a href="https://github.com/docularxu/sleef/tree/working.sleef.bench" target="_blank" rel="noopener">docularxu/sleef@working.sleef.bench</a>
+            </p>
             <pre>cd gelu
 ./build_riscv.sh</pre>
             <p>Benchmark testing:</p>
-            <pre>./gelu_rvvm1 100000 10000   # RVVM1
-./gelu_rvvm2 100000 10000   # RVVM2</pre>
+            <pre>$ ./gelu_rvvm1 11008 100000; ./gelu_rvvm2 11008 100000;</pre>
+            <h4>Why size n=11008?</h4>
+            <p>In LLM inference, <code>GELU</code> is applied over the FFN intermediate size (expanded hidden width per token after the first MLP projection), not small toy sizes. Using <code>n=11008</code> mimics LLaMA 7B's FFN width, making the microbenchmark more representative.</p>
+            <ul>
+                <li><strong>Common FFN (intermediate) sizes</strong> to mimic:</li>
+                <li>BERT-base: 3072</li>
+                <li>BERT-large: 4096</li>
+                <li>GPT-2 small: 3072</li>
+                <li>LLaMA 7B: 11008</li>
+                <li>Mistral/LLaMA 7B-class: 14336</li>
+                <li>LLaMA 13B: 13824</li>
+                <li>LLaMA 70B: 28672</li>
+                <li>GPT-3 175B: 49152</li>
+                <li><strong>Practical picks</strong> for microbenchmarks: 11008 or 14336. For a small set: 3072, 4096, 11008, 14336, 28672, 49152.</li>
+            </ul>
+        </section>
+
+        <h2>Results Table</h2>
+        <section class="detail-section">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Mode</th>
+                        <th>GELU Variant</th>
+                        <th>Precision</th>
+                        <th>libm Time (ns)</th>
+                        <th>Vector Time (ns)</th>
+                        <th>libm Throughput (GB/s)</th>
+                        <th>Vector Throughput (GB/s)</th>
+                        <th>Speedup</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>RVVM1</td><td>erf</td><td>FP64</td><td>117.492</td><td>83.387</td><td>0.136</td><td>0.192</td><td>1.41x</td></tr>
+                    <tr><td>RVVM1</td><td>tanh</td><td>FP64</td><td>155.479</td><td>97.503</td><td>0.103</td><td>0.164</td><td>1.59x</td></tr>
+                    <tr><td>RVVM1</td><td>erff</td><td>FP32</td><td>64.321</td><td>32.141</td><td>0.124</td><td>0.249</td><td>2.00x</td></tr>
+                    <tr><td>RVVM1</td><td>tanhf</td><td>FP32</td><td>72.396</td><td>39.766</td><td>0.111</td><td>0.201</td><td>1.82x</td></tr>
+                    <tr><td>RVVM2</td><td>erf</td><td>FP64</td><td>119.103</td><td>61.969</td><td>0.134</td><td>0.258</td><td>1.92x</td></tr>
+                    <tr><td>RVVM2</td><td>tanh</td><td>FP64</td><td>156.496</td><td>98.139</td><td>0.102</td><td>0.163</td><td>1.59x</td></tr>
+                    <tr><td>RVVM2</td><td>erff</td><td>FP32</td><td>64.825</td><td>24.326</td><td>0.123</td><td>0.329</td><td>2.66x</td></tr>
+                    <tr><td>RVVM2</td><td>tanhf</td><td>FP32</td><td>72.987</td><td>39.688</td><td>0.110</td><td>0.202</td><td>1.84x</td></tr>
+                </tbody>
+            </table>
+            <p><strong>Note</strong>: 'erf' indicates the exact GELU formulation using the error function; 'tanh' indicates the tanh approximation. The 'f' suffix denotes single precision (FP32).</p>
         </section>
 
         <h2>Charts: Time, Throughput, and Speedup</h2>
 
         <div class="chart-pair">
             <section class="chart-section">
-                <h3>Double Precision: Time (ns/element)</h3>
+                <h3>Double Precision: Time (ns/element) by GELU Variant</h3>
                 <div class="chart-container">
                     <canvas id="doubleTimeChart"></canvas>
                 </div>
-                <p class="chart-description">Lower is better. Functions: erf, tanh.</p>
+                <p class="chart-description">Lower is better. GELU Variants: erf (exact), tanh (approx).</p>
             </section>
 
             <section class="chart-section">
-                <h3>Single Precision: Time (ns/element)</h3>
+                <h3>Single Precision: Time (ns/element) by GELU Variant</h3>
                 <div class="chart-container">
                     <canvas id="singleTimeChart"></canvas>
                 </div>
-                <p class="chart-description">Lower is better. Functions: erff, tanhf.</p>
+                <p class="chart-description">Lower is better. GELU Variants: erff (exact FP32), tanhf (approx FP32).</p>
             </section>
         </div>
 
         <div class="chart-pair">
             <section class="chart-section">
-                <h3>Double Precision: Throughput (GB/s)</h3>
+                <h3>Double Precision: Throughput (GB/s) by GELU Variant</h3>
                 <div class="chart-container">
                     <canvas id="doubleThroughputChart"></canvas>
                 </div>
@@ -328,7 +386,7 @@
             </section>
 
             <section class="chart-section">
-                <h3>Single Precision: Throughput (GB/s)</h3>
+                <h3>Single Precision: Throughput (GB/s) by GELU Variant</h3>
                 <div class="chart-container">
                     <canvas id="singleThroughputChart"></canvas>
                 </div>
@@ -348,7 +406,8 @@
             <h3>Observations</h3>
             <h4>What the benchmark shows</h4>
             <ul>
-                <li><strong>Setup</strong>: n=100000 elements, 1000 iterations. Numbers are average per-element timing.</li>
+                <li><strong>Setup</strong>: Results aggregated from two configurations (RVVM1: LMUL=1, RVVM2: LMUL=2). Numbers are average per-element timing.</li>
+                <li><strong>GELU variants</strong>: <code>erf</code> = exact GELU; <code>tanh</code> = tanh-approx GELU. Suffix <code>f</code> denotes FP32.</li>
                 <li><strong>Columns</strong>:
                     <ul>
                         <li><strong>Time (ns)</strong>: Average nanoseconds per element (includes one load and one store).</li>
@@ -359,14 +418,14 @@
                                 <li><strong>Example</strong>: FP64 RVVM1 erf 85.230 ns → 16 / 85.230 ≈ 0.188 GB/s; FP64 RVVM2 erf 62.459 ns → 16 / 62.459 ≈ 0.256 GB/s.</li>
                             </ul>
                         </li>
-                        <li><strong>Speedup</strong>: Relative to the scalar libm baseline of the same function/precision.</li>
+                        <li><strong>Speedup</strong>: Relative to the scalar libm baseline of the same GELU variant/precision.</li>
                     </ul>
                 </li>
             </ul>
 
             <h4>Key takeaways</h4>
             <ul>
-                <li><strong>Vector SLEEF is faster</strong> than scalar libm across the board (RVVM2 shown):
+                <li><strong>Vector SLEEF GELU kernels are faster</strong> than scalar libm across the board (RVVM2 shown):
                     <ul>
                         <li>FP64: 1.93x (erf), 1.59x (tanh)</li>
                         <li>FP32: 2.66x (erff), 1.87x (tanhf)</li>
@@ -374,7 +433,7 @@
                 </li>
                 <li><strong>FP32 benefits more</strong> from vectorization: more lanes per vector and generally cheaper approximations.</li>
                 <li><strong>RVVM2 vs RVVM1</strong>: RVVM2 helps most on erf/erff (~1.36x FP64 erf; ~1.32x FP32 erff). tanh/tanhf are ~flat (~0.99–1.02x).</li>
-                <li><strong>tanh vs erf</strong>: Scalar tanh baseline is higher than erf; vectorization reduces the gap notably for tanh as well.</li>
+                <li><strong>tanh-based vs erf-based GELU</strong>: Scalar tanh-based baseline is higher than erf-based; vectorization reduces the gap notably for tanh as well.</li>
                 <li><strong>Throughput note</strong>: Absolute GB/s is low vs system memory BW → kernels are compute-bound; GB/s here normalizes time, not a memory limit.</li>
                 <li><strong>Bottom line</strong>: SLEEF RVV delivers solid gains, with RVVM2 reaching up to ~2.66x (erff) over libm.</li>
             </ul>
@@ -383,7 +442,7 @@
         <h2>Raw Benchmark Outputs (Two Configurations)</h2>
         <section class="detail-section">
             <h3>RVVM1 (LMUL=1)</h3>
-            <pre>$ ./gelu_rvvm1 100000 1000
+            <pre>$ ./gelu_rvvm1 11008 100000; ./gelu_rvvm2 11008 100000;
 ========================================
 GELU Kernel using SLEEF (RISC-V Vector (LMUL=1))
 ========================================
@@ -398,34 +457,34 @@ Single precision correctness test:
   GELU tanh approx max error:   2.594e-07
   Max difference (exact vs tanh): 4.733e-04
 
-Benchmark (n=100000, iterations=1000):
+Benchmark (n=11008, iterations=100000):
 ========================================
 
 Double Precision (FP64):
 Implementation                    Time (ns)   Throughput    Speedup
 ------------------------------ ------------ ------------ ----------
-Scalar libm (erf)                   121.128     0.132 GB/s      1.00x
-SLEEF Vector (erf)                   85.230     0.188 GB/s      1.42x
+Scalar libm (erf)                   117.492     0.136 GB/s      1.00x
+SLEEF Vector (erf)                   83.387     0.192 GB/s      1.41x
 
-Scalar libm (tanh)                  158.385     0.101 GB/s      1.00x
-SLEEF Vector (tanh)                  98.115     0.163 GB/s      1.61x
+Scalar libm (tanh)                  155.479     0.103 GB/s      1.00x
+SLEEF Vector (tanh)                  97.503     0.164 GB/s      1.59x
 
 ========================================
 
 Single Precision (FP32):
 Implementation                    Time (ns)   Throughput    Speedup
 ------------------------------ ------------ ------------ ----------
-Scalar libm (erff)                   64.670     0.124 GB/s      1.00x
-SLEEF Vector (erff)                  32.211     0.248 GB/s      2.01x
+Scalar libm (erff)                   64.321     0.124 GB/s      1.00x
+SLEEF Vector (erff)                  32.141     0.249 GB/s      2.00x
 
-Scalar libm (tanhf)                  72.664     0.110 GB/s      1.00x
-SLEEF Vector (tanhf)                 39.938     0.200 GB/s      1.82x
+Scalar libm (tanhf)                  72.396     0.111 GB/s      1.00x
+SLEEF Vector (tanhf)                 39.766     0.201 GB/s      1.82x
 
 ========================================</pre>
         </section>
         <section class="detail-section">
             <h3>RVVM2 (LMUL=2)</h3>
-            <pre>$ ./gelu_rvvm2 100000 1000
+            <pre>$ ./gelu_rvvm2 11008 100000
 ========================================
 GELU Kernel using SLEEF (RISC-V Vector (LMUL=2))
 ========================================
@@ -440,49 +499,66 @@ Single precision correctness test:
   GELU tanh approx max error:   2.594e-07
   Max difference (exact vs tanh): 4.733e-04
 
-Benchmark (n=100000, iterations=1000):
+Benchmark (n=11008, iterations=100000):
 ========================================
 
 Double Precision (FP64):
 Implementation                    Time (ns)   Throughput    Speedup
 ------------------------------ ------------ ------------ ----------
-Scalar libm (erf)                   120.582     0.133 GB/s      1.00x
-SLEEF Vector (erf)                   62.459     0.256 GB/s      1.93x
+Scalar libm (erf)                   119.103     0.134 GB/s      1.00x
+SLEEF Vector (erf)                   61.969     0.258 GB/s      1.92x
 
-Scalar libm (tanh)                  157.231     0.102 GB/s      1.00x
-SLEEF Vector (tanh)                  99.190     0.161 GB/s      1.59x
+Scalar libm (tanh)                  156.496     0.102 GB/s      1.00x
+SLEEF Vector (tanh)                  98.139     0.163 GB/s      1.59x
 
 ========================================
 
 Single Precision (FP32):
 Implementation                    Time (ns)   Throughput    Speedup
 ------------------------------ ------------ ------------ ----------
-Scalar libm (erff)                   65.160     0.123 GB/s      1.00x
-SLEEF Vector (erff)                  24.458     0.327 GB/s      2.66x
+Scalar libm (erff)                   64.825     0.123 GB/s      1.00x
+SLEEF Vector (erff)                  24.326     0.329 GB/s      2.66x
 
-Scalar libm (tanhf)                  73.274     0.109 GB/s      1.00x
-SLEEF Vector (tanhf)                 39.212     0.204 GB/s      1.87x
+Scalar libm (tanhf)                  72.987     0.110 GB/s      1.00x
+SLEEF Vector (tanhf)                 39.688     0.202 GB/s      1.84x
 
 ========================================</pre>
         </section>
     </div>
 
     <script>
-        // Combined dataset from RVVM1 and RVVM2 runs
-        const geluData = {
-            Double: [
-                { func: 'erf',  libm_m1: 121.128, rvvm1: 85.230,  libm_m1_tp: 0.132, rvvm1_tp: 0.188,
-                             libm_m2: 120.582, rvvm2: 62.459,  libm_m2_tp: 0.133, rvvm2_tp: 0.256 },
-                { func: 'tanh', libm_m1: 158.385, rvvm1: 98.115,  libm_m1_tp: 0.101, rvvm1_tp: 0.163,
-                             libm_m2: 157.231, rvvm2: 99.190,  libm_m2_tp: 0.102, rvvm2_tp: 0.161 },
-            ],
-            Single: [
-                { func: 'erff',  libm_m1: 64.670,  rvvm1: 32.211,  libm_m1_tp: 0.124, rvvm1_tp: 0.248,
-                              libm_m2: 65.160,  rvvm2: 24.458,  libm_m2_tp: 0.123, rvvm2_tp: 0.327 },
-                { func: 'tanhf', libm_m1: 72.664,  rvvm1: 39.938,  libm_m1_tp: 0.110, rvvm1_tp: 0.200,
-                              libm_m2: 73.274,  rvvm2: 39.212,  libm_m2_tp: 0.109, rvvm2_tp: 0.204 },
-            ],
-        };
+        // Build chart datasets by parsing the results table
+        function extractGeluDataFromTable() {
+            const rows = Array.from(document.querySelectorAll('#resultsTable tbody tr'));
+            const recordMap = new Map();
+            const normalizePrecision = p => (p || '').toUpperCase() === 'FP64' ? 'Double' : 'Single';
+            rows.forEach(tr => {
+                const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
+                if (cells.length < 8) return;
+                const [mode, func, precisionRaw, libmTimeStr, vectorTimeStr, libmTpStr, vectorTpStr] = cells;
+                const precision = normalizePrecision(precisionRaw);
+                const key = `${func}|${precision}`;
+                const rec = recordMap.get(key) || { func, precision };
+                const libmTime = parseFloat(libmTimeStr);
+                const vectorTime = parseFloat(vectorTimeStr);
+                const libmTp = parseFloat(libmTpStr);
+                const vectorTp = parseFloat(vectorTpStr);
+                if (mode === 'RVVM1') {
+                    rec.libm_m1 = libmTime; rec.rvvm1 = vectorTime;
+                    rec.libm_m1_tp = libmTp; rec.rvvm1_tp = vectorTp;
+                } else if (mode === 'RVVM2') {
+                    rec.libm_m2 = libmTime; rec.rvvm2 = vectorTime;
+                    rec.libm_m2_tp = libmTp; rec.rvvm2_tp = vectorTp;
+                }
+                recordMap.set(key, rec);
+            });
+            const orderDouble = ['erf', 'tanh'];
+            const orderSingle = ['erff', 'tanhf'];
+            return {
+                Double: orderDouble.map(f => recordMap.get(`${f}|Double`)).filter(Boolean),
+                Single: orderSingle.map(f => recordMap.get(`${f}|Single`)).filter(Boolean)
+            };
+        }
 
         function toFixedOrNA(v, digits = 3) {
             if (v === null || v === undefined || isNaN(parseFloat(v))) return 'N/A';
@@ -509,7 +585,7 @@ SLEEF Vector (tanhf)                 39.212     0.204 GB/s      1.87x
         }
 
         function createTimeChart(ctx, precision) {
-            const data = geluData[precision];
+            const data = (window.geluData && window.geluData[precision]) ? window.geluData[precision] : [];
             const labels = data.map(d => d.func);
             // Use libm baseline from RVVM1 run for grouped comparison
             const libm = data.map(d => d.libm_m1);
@@ -531,14 +607,14 @@ SLEEF Vector (tanhf)                 39.212     0.204 GB/s      1.87x
                     plugins: { title: { display: true, text: `${precision} Precision`, font: { size: 18, weight: 'bold' } } },
                     scales: {
                         y: { beginAtZero: true, title: { display: true, text: 'Time (ns)' }, ticks: { callback: v => v + ' ns' } },
-                        x: { title: { display: true, text: 'Function' } }
+                        x: { title: { display: true, text: 'GELU Variant' } }
                     }
                 }
             });
         }
 
         function createThroughputChart(ctx, precision) {
-            const data = geluData[precision];
+            const data = (window.geluData && window.geluData[precision]) ? window.geluData[precision] : [];
             const labels = data.map(d => d.func);
             const libm = data.map(d => d.libm_m1_tp);
             const rvvm1 = data.map(d => d.rvvm1_tp);
@@ -559,16 +635,25 @@ SLEEF Vector (tanhf)                 39.212     0.204 GB/s      1.87x
                     plugins: { title: { display: true, text: `${precision} Precision`, font: { size: 18, weight: 'bold' } } },
                     scales: {
                         y: { beginAtZero: true, title: { display: true, text: 'Throughput (GB/s)' }, ticks: { callback: v => v + ' GB/s' } },
-                        x: { title: { display: true, text: 'Function' } }
+                        x: { title: { display: true, text: 'GELU Variant' } }
                     }
                 }
             });
         }
 
         function createSpeedupChart(ctx) {
-            const labels = [...geluData.Double.map(d => `${d.func} (Double)`), ...geluData.Single.map(d => `${d.func} (Single)`)];
-            const m1 = [...geluData.Double.map(d => d.libm_m1 / d.rvvm1), ...geluData.Single.map(d => d.libm_m1 / d.rvvm1)];
-            const m2 = [...geluData.Double.map(d => d.libm_m2 / d.rvvm2), ...geluData.Single.map(d => d.libm_m2 / d.rvvm2)];
+            const labels = [
+                ...(window.geluData?.Double || []).map(d => `${d.func} (Double)`),
+                ...(window.geluData?.Single || []).map(d => `${d.func} (Single)`)
+            ];
+            const m1 = [
+                ...(window.geluData?.Double || []).map(d => d.libm_m1 / d.rvvm1),
+                ...(window.geluData?.Single || []).map(d => d.libm_m1 / d.rvvm1)
+            ];
+            const m2 = [
+                ...(window.geluData?.Double || []).map(d => d.libm_m2 / d.rvvm2),
+                ...(window.geluData?.Single || []).map(d => d.libm_m2 / d.rvvm2)
+            ];
             const baseline = labels.map(() => 1);
             new Chart(ctx, {
                 type: 'bar',
@@ -586,14 +671,15 @@ SLEEF Vector (tanhf)                 39.212     0.204 GB/s      1.87x
                     plugins: { title: { display: true, text: 'Speedup vs. libm', font: { size: 18, weight: 'bold' } } },
                     scales: {
                         y: { beginAtZero: true, title: { display: true, text: 'Speedup' }, ticks: { callback: v => v + 'x' } },
-                        x: { title: { display: true, text: 'Function (Precision)' } }
+                        x: { title: { display: true, text: 'GELU Variant (Precision)' } }
                     }
                 }
             });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // No table build on this page; directly build charts from combined data
+            // Parse the results table first, then build charts from parsed data
+            window.geluData = extractGeluDataFromTable();
             createTimeChart(document.getElementById('doubleTimeChart').getContext('2d'), 'Double');
             createTimeChart(document.getElementById('singleTimeChart').getContext('2d'), 'Single');
             createThroughputChart(document.getElementById('doubleThroughputChart').getContext('2d'), 'Double');
