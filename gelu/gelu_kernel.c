@@ -304,7 +304,7 @@ void gelu_exact_d_rvv(const double *input, double *output, size_t n) {
     
     // GELU(x) = 0.5 * x * (1 + erf(x/√2))
     vdouble x_scaled = RVV_VFMUL_VF_D(x, SQRT_2_INV, vl);
-    vdouble erf_val = SLEEF_ERF_D(x_scaled, vl);
+    vdouble erf_val = SLEEF_ERF_D(x_scaled);  // SLEEF handles vl internally
     vdouble one_plus_erf = RVV_VFADD_VF_D(erf_val, 1.0, vl);
     vdouble half_x = RVV_VFMUL_VF_D(x, 0.5, vl);
     vdouble result = RVV_VFMUL_VV_D(half_x, one_plus_erf, vl);
@@ -326,7 +326,7 @@ void gelu_tanh_d_rvv(const double *input, double *output, size_t n) {
     vdouble x3 = RVV_VFMUL_VV_D(x2, x, vl);
     vdouble inner = RVV_VFMACC_VF_D(x, GELU_COEFF, x3, vl);  // x + coeff * x³
     vdouble scaled = RVV_VFMUL_VF_D(inner, SQRT_2_OVER_PI, vl);
-    vdouble tanh_val = SLEEF_TANH_D(scaled, vl);
+    vdouble tanh_val = SLEEF_TANH_D(scaled);  // SLEEF handles vl internally
     vdouble one_plus_tanh = RVV_VFADD_VF_D(tanh_val, 1.0, vl);
     vdouble half_x = RVV_VFMUL_VF_D(x, 0.5, vl);
     vdouble result = RVV_VFMUL_VV_D(half_x, one_plus_tanh, vl);
@@ -491,7 +491,7 @@ void gelu_exact_f_rvv(const float *input, float *output, size_t n) {
     vfloat x = RVV_VLE_F(input + i, vl);
     
     vfloat x_scaled = RVV_VFMUL_VF_F(x, SQRT_2_INV_F, vl);
-    vfloat erf_val = SLEEF_ERF_F(x_scaled, vl);
+    vfloat erf_val = SLEEF_ERF_F(x_scaled);  // SLEEF handles vl internally
     vfloat one_plus_erf = RVV_VFADD_VF_F(erf_val, 1.0f, vl);
     vfloat half_x = RVV_VFMUL_VF_F(x, 0.5f, vl);
     vfloat result = RVV_VFMUL_VV_F(half_x, one_plus_erf, vl);
@@ -512,7 +512,7 @@ void gelu_tanh_f_rvv(const float *input, float *output, size_t n) {
     vfloat x3 = RVV_VFMUL_VV_F(x2, x, vl);
     vfloat inner = RVV_VFMACC_VF_F(x, GELU_COEFF_F, x3, vl);
     vfloat scaled = RVV_VFMUL_VF_F(inner, SQRT_2_OVER_PI_F, vl);
-    vfloat tanh_val = SLEEF_TANH_F(scaled, vl);
+    vfloat tanh_val = SLEEF_TANH_F(scaled);  // SLEEF handles vl internally
     vfloat one_plus_tanh = RVV_VFADD_VF_F(tanh_val, 1.0f, vl);
     vfloat half_x = RVV_VFMUL_VF_F(x, 0.5f, vl);
     vfloat result = RVV_VFMUL_VV_F(half_x, one_plus_tanh, vl);
@@ -722,6 +722,31 @@ static void test_correctness(void) {
   free(input_f); free(output_exact_f); free(output_tanh_f);
 }
 
+// Scalar libm implementations for benchmark comparison
+static void gelu_exact_scalar_loop(const double *input, double *output, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    output[i] = gelu_exact_scalar(input[i]);
+  }
+}
+
+static void gelu_tanh_scalar_loop(const double *input, double *output, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    output[i] = gelu_tanh_scalar(input[i]);
+  }
+}
+
+static void gelu_exact_scalar_loop_f(const float *input, float *output, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    output[i] = gelu_exact_scalar_f(input[i]);
+  }
+}
+
+static void gelu_tanh_scalar_loop_f(const float *input, float *output, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    output[i] = gelu_tanh_scalar_f(input[i]);
+  }
+}
+
 // Benchmark
 static void benchmark(size_t n, size_t iterations) {
   double *input_d = aligned_alloc(64, n * sizeof(double));
@@ -735,46 +760,117 @@ static void benchmark(size_t n, size_t iterations) {
   }
   
   printf("Benchmark (n=%zu, iterations=%zu):\n", n, iterations);
+  printf("========================================\n\n");
   
-  // Double precision - exact
+  // Double precision comparison
+  printf("Double Precision (FP64):\n");
+  printf("%-30s %12s %12s %10s\n", "Implementation", "Time (ns)", "Throughput", "Speedup");
+  printf("%-30s %12s %12s %10s\n", "------------------------------", "------------", "------------", "----------");
+  
+  // Scalar libm - exact
   double start = get_time_sec();
+  for (size_t iter = 0; iter < iterations; iter++) {
+    gelu_exact_scalar_loop(input_d, output_d, n);
+  }
+  double scalar_exact_time = get_time_sec() - start;
+  double scalar_exact_ns = scalar_exact_time * 1e9 / (iterations * n);
+  double scalar_exact_gbps = (iterations * n * 2 * sizeof(double)) / (scalar_exact_time * 1e9);
+  printf("%-30s %12.3f %9.3f GB/s %10s\n", 
+         "Scalar libm (erf)", scalar_exact_ns, scalar_exact_gbps, "1.00x");
+  
+  // SLEEF vectorized - exact
+  start = get_time_sec();
   for (size_t iter = 0; iter < iterations; iter++) {
     gelu_exact_double(input_d, output_d, n);
   }
-  double elapsed = get_time_sec() - start;
-  printf("  GELU exact (double):    %8.3f ns/elem  (%8.3f GB/s)\n",
-         elapsed * 1e9 / (iterations * n),
-         (iterations * n * 2 * sizeof(double)) / (elapsed * 1e9));
+  double vec_exact_time = get_time_sec() - start;
+  double vec_exact_ns = vec_exact_time * 1e9 / (iterations * n);
+  double vec_exact_gbps = (iterations * n * 2 * sizeof(double)) / (vec_exact_time * 1e9);
+  double vec_exact_speedup = scalar_exact_time / vec_exact_time;
+  printf("%-30s %12.3f %9.3f GB/s %9.2fx\n", 
+         "SLEEF Vector (erf)", vec_exact_ns, vec_exact_gbps, vec_exact_speedup);
   
-  // Double precision - tanh
+  printf("\n");
+  
+  // Scalar libm - tanh
+  start = get_time_sec();
+  for (size_t iter = 0; iter < iterations; iter++) {
+    gelu_tanh_scalar_loop(input_d, output_d, n);
+  }
+  double scalar_tanh_time = get_time_sec() - start;
+  double scalar_tanh_ns = scalar_tanh_time * 1e9 / (iterations * n);
+  double scalar_tanh_gbps = (iterations * n * 2 * sizeof(double)) / (scalar_tanh_time * 1e9);
+  printf("%-30s %12.3f %9.3f GB/s %10s\n", 
+         "Scalar libm (tanh)", scalar_tanh_ns, scalar_tanh_gbps, "1.00x");
+  
+  // SLEEF vectorized - tanh
   start = get_time_sec();
   for (size_t iter = 0; iter < iterations; iter++) {
     gelu_tanh_double(input_d, output_d, n);
   }
-  elapsed = get_time_sec() - start;
-  printf("  GELU tanh (double):     %8.3f ns/elem  (%8.3f GB/s)\n",
-         elapsed * 1e9 / (iterations * n),
-         (iterations * n * 2 * sizeof(double)) / (elapsed * 1e9));
+  double vec_tanh_time = get_time_sec() - start;
+  double vec_tanh_ns = vec_tanh_time * 1e9 / (iterations * n);
+  double vec_tanh_gbps = (iterations * n * 2 * sizeof(double)) / (vec_tanh_time * 1e9);
+  double vec_tanh_speedup = scalar_tanh_time / vec_tanh_time;
+  printf("%-30s %12.3f %9.3f GB/s %9.2fx\n", 
+         "SLEEF Vector (tanh)", vec_tanh_ns, vec_tanh_gbps, vec_tanh_speedup);
   
-  // Single precision - exact
+  printf("\n========================================\n\n");
+  
+  // Single precision comparison
+  printf("Single Precision (FP32):\n");
+  printf("%-30s %12s %12s %10s\n", "Implementation", "Time (ns)", "Throughput", "Speedup");
+  printf("%-30s %12s %12s %10s\n", "------------------------------", "------------", "------------", "----------");
+  
+  // Scalar libm - exact
+  start = get_time_sec();
+  for (size_t iter = 0; iter < iterations; iter++) {
+    gelu_exact_scalar_loop_f(input_f, output_f, n);
+  }
+  double scalar_exact_time_f = get_time_sec() - start;
+  double scalar_exact_ns_f = scalar_exact_time_f * 1e9 / (iterations * n);
+  double scalar_exact_gbps_f = (iterations * n * 2 * sizeof(float)) / (scalar_exact_time_f * 1e9);
+  printf("%-30s %12.3f %9.3f GB/s %10s\n", 
+         "Scalar libm (erff)", scalar_exact_ns_f, scalar_exact_gbps_f, "1.00x");
+  
+  // SLEEF vectorized - exact
   start = get_time_sec();
   for (size_t iter = 0; iter < iterations; iter++) {
     gelu_exact_float(input_f, output_f, n);
   }
-  elapsed = get_time_sec() - start;
-  printf("  GELU exact (float):     %8.3f ns/elem  (%8.3f GB/s)\n",
-         elapsed * 1e9 / (iterations * n),
-         (iterations * n * 2 * sizeof(float)) / (elapsed * 1e9));
+  double vec_exact_time_f = get_time_sec() - start;
+  double vec_exact_ns_f = vec_exact_time_f * 1e9 / (iterations * n);
+  double vec_exact_gbps_f = (iterations * n * 2 * sizeof(float)) / (vec_exact_time_f * 1e9);
+  double vec_exact_speedup_f = scalar_exact_time_f / vec_exact_time_f;
+  printf("%-30s %12.3f %9.3f GB/s %9.2fx\n", 
+         "SLEEF Vector (erff)", vec_exact_ns_f, vec_exact_gbps_f, vec_exact_speedup_f);
   
-  // Single precision - tanh
+  printf("\n");
+  
+  // Scalar libm - tanh
+  start = get_time_sec();
+  for (size_t iter = 0; iter < iterations; iter++) {
+    gelu_tanh_scalar_loop_f(input_f, output_f, n);
+  }
+  double scalar_tanh_time_f = get_time_sec() - start;
+  double scalar_tanh_ns_f = scalar_tanh_time_f * 1e9 / (iterations * n);
+  double scalar_tanh_gbps_f = (iterations * n * 2 * sizeof(float)) / (scalar_tanh_time_f * 1e9);
+  printf("%-30s %12.3f %9.3f GB/s %10s\n", 
+         "Scalar libm (tanhf)", scalar_tanh_ns_f, scalar_tanh_gbps_f, "1.00x");
+  
+  // SLEEF vectorized - tanh
   start = get_time_sec();
   for (size_t iter = 0; iter < iterations; iter++) {
     gelu_tanh_float(input_f, output_f, n);
   }
-  elapsed = get_time_sec() - start;
-  printf("  GELU tanh (float):      %8.3f ns/elem  (%8.3f GB/s)\n\n",
-         elapsed * 1e9 / (iterations * n),
-         (iterations * n * 2 * sizeof(float)) / (elapsed * 1e9));
+  double vec_tanh_time_f = get_time_sec() - start;
+  double vec_tanh_ns_f = vec_tanh_time_f * 1e9 / (iterations * n);
+  double vec_tanh_gbps_f = (iterations * n * 2 * sizeof(float)) / (vec_tanh_time_f * 1e9);
+  double vec_tanh_speedup_f = scalar_tanh_time_f / vec_tanh_time_f;
+  printf("%-30s %12.3f %9.3f GB/s %9.2fx\n", 
+         "SLEEF Vector (tanhf)", vec_tanh_ns_f, vec_tanh_gbps_f, vec_tanh_speedup_f);
+  
+  printf("\n========================================\n\n");
   
   free(input_d); free(output_d);
   free(input_f); free(output_f);

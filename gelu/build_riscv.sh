@@ -82,22 +82,53 @@ SLEEF_LIBDIR=""
 if [ -f "$HOME/.local/include/sleef.h" ]; then
     echo "✓ Found SLEEF in: $HOME/.local"
     SLEEF_INCLUDE="$HOME/.local/include"
-    SLEEF_LIBDIR="$HOME/.local/lib"
+    # Check both lib64 and lib directories
+    if [ -f "$HOME/.local/lib64/libsleef.a" ] || [ -f "$HOME/.local/lib64/libsleef.so" ]; then
+        SLEEF_LIBDIR="$HOME/.local/lib64"
+    else
+        SLEEF_LIBDIR="$HOME/.local/lib"
+    fi
     SLEEF_FOUND="yes"
 elif [ -f "/usr/local/include/sleef.h" ]; then
     echo "✓ Found SLEEF in: /usr/local"
     SLEEF_INCLUDE="/usr/local/include"
-    SLEEF_LIBDIR="/usr/local/lib"
+    # Check both lib64 and lib directories
+    if [ -f "/usr/local/lib64/libsleef.a" ] || [ -f "/usr/local/lib64/libsleef.so" ]; then
+        SLEEF_LIBDIR="/usr/local/lib64"
+    else
+        SLEEF_LIBDIR="/usr/local/lib"
+    fi
     SLEEF_FOUND="yes"
 elif [ -f "/usr/include/sleef.h" ]; then
     echo "✓ Found SLEEF in: /usr"
     SLEEF_INCLUDE="/usr/include"
-    SLEEF_LIBDIR="/usr/lib"
+    # Check both lib64 and lib directories
+    if [ -f "/usr/lib64/libsleef.a" ] || [ -f "/usr/lib64/libsleef.so" ]; then
+        SLEEF_LIBDIR="/usr/lib64"
+    else
+        SLEEF_LIBDIR="/usr/lib"
+    fi
+    SLEEF_FOUND="yes"
+elif [ -f "../build/include/sleef.h" ]; then
+    echo "✓ Found SLEEF in: ../build (uninstalled)"
+    SLEEF_INCLUDE="$(cd ../build/include && pwd)"
+    # Check both lib64 and lib directories
+    if [ -d "../build/lib64" ]; then
+        SLEEF_LIBDIR="$(cd ../build/lib64 && pwd)"
+    else
+        SLEEF_LIBDIR="$(cd ../build/lib && pwd)"
+    fi
     SLEEF_FOUND="yes"
 else
     echo "⚠ Warning: SLEEF headers not found in standard locations"
-    echo "  Searched: $HOME/.local, /usr/local, /usr"
-    echo "  You may need to set SLEEF_PREFIX=/path/to/sleef"
+    echo "  Searched: $HOME/.local, /usr/local, /usr, ../build"
+    echo ""
+    echo "  If SLEEF is built but not installed, use:"
+    echo "    SLEEF_PREFIX=/path/to/sleef/build ./build_riscv.sh"
+    echo ""
+    echo "  Or install SLEEF first:"
+    echo "    cd /path/to/sleef/build"
+    echo "    cmake --build . --target install"
 fi
 
 # Build options (can be overridden with environment variables)
@@ -247,11 +278,34 @@ else
     exit 1
 fi
 
-# Build shared libraries
+# Build shared libraries (if SLEEF shared library is available)
 echo ""
 echo "Building shared libraries..."
-$RV_GCC $CFLAGS -march=$MARCH -DENABLE_RVVM1 -fPIC -shared gelu_kernel.c $LDFLAGS -o libgelu_rvvm1.so
-$RV_GCC $CFLAGS -march=$MARCH -DENABLE_RVVM2 -fPIC -shared gelu_kernel.c $LDFLAGS -o libgelu_rvvm2.so
+
+# Check if SLEEF shared library exists
+SLEEF_HAS_SHARED=0
+if [ -n "$SLEEF_LIBDIR" ]; then
+    if [ -f "$SLEEF_LIBDIR/libsleef.so" ] || [ -f "$SLEEF_LIBDIR/libsleef.dylib" ]; then
+        SLEEF_HAS_SHARED=1
+    fi
+fi
+
+if [ $SLEEF_HAS_SHARED -eq 1 ]; then
+    $RV_GCC $CFLAGS -march=$MARCH -DENABLE_RVVM1 -fPIC -shared gelu_kernel.c $LDFLAGS -o libgelu_rvvm1.so
+    $RV_GCC $CFLAGS -march=$MARCH -DENABLE_RVVM2 -fPIC -shared gelu_kernel.c $LDFLAGS -o libgelu_rvvm2.so
+    
+    if [ $? -eq 0 ]; then
+        echo "✓ Successfully built shared libraries"
+    else
+        echo "⚠ Warning: Failed to build shared libraries"
+    fi
+else
+    echo "⚠ Skipping shared libraries - SLEEF static library not built with -fPIC"
+    echo "  To build shared libraries, rebuild SLEEF with:"
+    echo "    cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=~/.local .."
+    echo "    cmake --build . -j"
+    echo "    cmake --install ."
+fi
 
 echo ""
 echo "=========================================="
