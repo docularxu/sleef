@@ -11,6 +11,33 @@ CC = gcc
 CFLAGS = -O3 -Wall -Wextra
 LDFLAGS = -lsleef -lm
 
+# Auto-detect SLEEF installation location
+SLEEF_INCLUDE :=
+SLEEF_LIBDIR :=
+
+ifneq ($(wildcard $(HOME)/.local/include/sleef.h),)
+  SLEEF_INCLUDE := $(HOME)/.local/include
+  SLEEF_LIBDIR := $(HOME)/.local/lib
+else ifneq ($(wildcard /usr/local/include/sleef.h),)
+  SLEEF_INCLUDE := /usr/local/include
+  SLEEF_LIBDIR := /usr/local/lib
+else ifneq ($(wildcard /usr/include/sleef.h),)
+  SLEEF_INCLUDE := /usr/include
+  SLEEF_LIBDIR := /usr/lib
+endif
+
+# Add SLEEF paths if found
+ifneq ($(SLEEF_INCLUDE),)
+  CFLAGS += -I$(SLEEF_INCLUDE)
+  LDFLAGS := -L$(SLEEF_LIBDIR) $(LDFLAGS)
+endif
+
+# Allow manual override
+ifdef SLEEF_PREFIX
+  CFLAGS += -I$(SLEEF_PREFIX)/include
+  LDFLAGS := -L$(SLEEF_PREFIX)/lib $(LDFLAGS)
+endif
+
 # Detect host architecture
 ARCH := $(shell uname -m)
 
@@ -255,9 +282,22 @@ help:
 	@echo "  make -f Makefile.gelu cross-riscv-m2    # Cross-compile for RISC-V"
 	@echo ""
 	@echo "Environment variables:"
-	@echo "  CC       - C compiler (default: gcc)"
-	@echo "  CFLAGS   - Compiler flags (default: -O3 -Wall -Wextra)"
-	@echo "  LDFLAGS  - Linker flags (default: -lsleef -lm)"
+	@echo "  CC              - C compiler (default: gcc)"
+	@echo "  CFLAGS          - Compiler flags (default: -O3 -Wall -Wextra)"
+	@echo "  LDFLAGS         - Linker flags (default: -lsleef -lm)"
+	@echo "  SLEEF_PREFIX    - SLEEF install location (auto-detected)"
+	@echo ""
+	@echo "RISC-V specific options:"
+	@echo "  MARCH_PRESET    - Board preset (jupiter, spacemit, sophgo, starfive2, sifive)"
+	@echo "  RVV_MARCH       - Custom -march string"
+	@echo "  RVV_VLEN        - Force vector length (128, 256, 512, 1024, 2048)"
+	@echo "  RVV_MAX_LMUL    - Limit max LMUL (1, 2, 4, 8)"
+	@echo "  RVV_EXTRA_FLAGS - Additional flags"
+	@echo ""
+	@echo "Examples (RISC-V):"
+	@echo "  make MARCH_PRESET=jupiter          # Optimize for Milk-V Jupiter"
+	@echo "  make RVV_VLEN=256                  # Force 256-bit vectors"
+	@echo "  make RVV_MARCH=rv64gcv_zba_zbb    # Custom ISA string"
 
 # Shorthand aliases
 .PHONY: sse2 avx2 avx512 neon sve rvvm1 rvvm2

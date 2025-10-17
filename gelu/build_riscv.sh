@@ -72,16 +72,60 @@ fi
 echo ""
 $RV_GCC --version | head -1
 
-# Check for SLEEF library
+# Check for SLEEF library and set paths
 echo ""
-if [ ! -f "/usr/include/sleef.h" ] && [ ! -f "/usr/local/include/sleef.h" ]; then
+SLEEF_FOUND=""
+SLEEF_INCLUDE=""
+SLEEF_LIBDIR=""
+
+# Check common installation locations
+if [ -f "$HOME/.local/include/sleef.h" ]; then
+    echo "✓ Found SLEEF in: $HOME/.local"
+    SLEEF_INCLUDE="$HOME/.local/include"
+    SLEEF_LIBDIR="$HOME/.local/lib"
+    SLEEF_FOUND="yes"
+elif [ -f "/usr/local/include/sleef.h" ]; then
+    echo "✓ Found SLEEF in: /usr/local"
+    SLEEF_INCLUDE="/usr/local/include"
+    SLEEF_LIBDIR="/usr/local/lib"
+    SLEEF_FOUND="yes"
+elif [ -f "/usr/include/sleef.h" ]; then
+    echo "✓ Found SLEEF in: /usr"
+    SLEEF_INCLUDE="/usr/include"
+    SLEEF_LIBDIR="/usr/lib"
+    SLEEF_FOUND="yes"
+else
     echo "⚠ Warning: SLEEF headers not found in standard locations"
-    echo "  You may need to specify -I/path/to/sleef/include"
+    echo "  Searched: $HOME/.local, /usr/local, /usr"
+    echo "  You may need to set SLEEF_PREFIX=/path/to/sleef"
 fi
 
 # Build options (can be overridden with environment variables)
 CFLAGS="${CFLAGS:--O3 -Wall -Wextra}"
 LDFLAGS="${LDFLAGS:--lsleef -lm}"
+
+# Add SLEEF paths if found
+if [ -n "$SLEEF_FOUND" ]; then
+    CFLAGS="$CFLAGS -I$SLEEF_INCLUDE"
+    LDFLAGS="-L$SLEEF_LIBDIR $LDFLAGS"
+    
+    # For runtime (especially when using shared libraries)
+    if [ -z "$LD_LIBRARY_PATH" ]; then
+        export LD_LIBRARY_PATH="$SLEEF_LIBDIR"
+    else
+        export LD_LIBRARY_PATH="$SLEEF_LIBDIR:$LD_LIBRARY_PATH"
+    fi
+    echo "  Include: $SLEEF_INCLUDE"
+    echo "  Library: $SLEEF_LIBDIR"
+fi
+
+# Allow manual override with SLEEF_PREFIX
+if [ -n "$SLEEF_PREFIX" ]; then
+    echo "⚙  Using SLEEF_PREFIX=$SLEEF_PREFIX"
+    CFLAGS="$CFLAGS -I$SLEEF_PREFIX/include"
+    LDFLAGS="-L$SLEEF_PREFIX/lib $LDFLAGS"
+    export LD_LIBRARY_PATH="$SLEEF_PREFIX/lib:$LD_LIBRARY_PATH"
+fi
 
 # RISC-V Vector specific options
 # Customize these based on your hardware by setting environment variables:
@@ -220,13 +264,23 @@ ls -lh gelu_rvvm* libgelu_rvvm*.so 2>/dev/null || true
 echo ""
 if [ "$ARCH" = "riscv64" ]; then
     echo "To run (native RISC-V):"
+    if [ -n "$SLEEF_LIBDIR" ] && [ "$SLEEF_LIBDIR" != "/usr/lib" ]; then
+        echo "  # Make sure SLEEF library is in your path:"
+        echo "  export LD_LIBRARY_PATH=$SLEEF_LIBDIR:\$LD_LIBRARY_PATH"
+        echo ""
+    fi
     echo "  ./gelu_rvvm1        # Test RVVM1"
     echo "  ./gelu_rvvm2        # Test RVVM2"
 else
     echo "To run on RISC-V hardware:"
     echo "  1. Copy binaries to RISC-V system"
     echo "  2. Ensure SLEEF library is installed"
-    echo "  3. Run: ./gelu_rvvm1"
+    if [ -n "$SLEEF_LIBDIR" ] && [ "$SLEEF_LIBDIR" != "/usr/lib" ]; then
+        echo "  3. Set: export LD_LIBRARY_PATH=$SLEEF_LIBDIR:\$LD_LIBRARY_PATH"
+        echo "  4. Run: ./gelu_rvvm1"
+    else
+        echo "  3. Run: ./gelu_rvvm1"
+    fi
     echo ""
     echo "To test with QEMU:"
     echo "  qemu-riscv64 -cpu rv64,v=true ./gelu_rvvm1"
