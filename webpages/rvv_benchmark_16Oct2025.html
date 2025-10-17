@@ -408,18 +408,28 @@
             <p>Build steps:</p>
             <pre>mkdir build
 cd build
-# Configure with RVV explicitly enabled
+# Ensure linker can find tlfloat in lib64
+export LIBRARY_PATH="$HOME/.local/lib64:$LIBRARY_PATH"
+# Configure with RVV explicitly enabled and PIC for shared libs
 cmake -DSLEEF_BUILD_BENCH=ON \
+      -DBUILD_SHARED_LIBS=ON \
       -DSLEEF_BUILD_TESTS=OFF \
       -DCMAKE_INSTALL_PREFIX=$HOME/.local \
       -DSLEEF_ENABLE_RVVM1=ON \
       -DSLEEF_ENABLE_RVVM2=ON \
-      -DCMAKE_C_FLAGS="-march=rv64gcv" \
-      -DCMAKE_CXX_FLAGS="-march=rv64gcv" \
+      -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+      -DCMAKE_C_FLAGS="-march=rv64gcv -fPIC" \
+      -DCMAKE_CXX_FLAGS="-march=rv64gcv -fPIC" \
+      -DCMAKE_SHARED_LINKER_FLAGS="-L$HOME/.local/lib64" \
       ..
 
 # Build
-cmake --build . -j --clean-first</pre>
+cmake --build . -j --clean-first
+cmake --build . -j
+# install
+cmake --install .
+# Runtime (if needed)
+# export LD_LIBRARY_PATH="$HOME/.local/lib64:$LD_LIBRARY_PATH"</pre>
             <p>Benchmark commands:</p>
             <pre>time ./bin/benchmark -i 100000000 -psz 10000000 --no-u35 --seed 12234456
 time ./bin/benchmark_rvvm1 -i 1000 -s 1000000
